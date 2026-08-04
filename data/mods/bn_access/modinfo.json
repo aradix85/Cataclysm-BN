@@ -1,0 +1,11 @@
+[
+  {
+    "type": "MOD_INFO",
+    "id": "bn_access",
+    "name": "Bright Nights Access",
+    "authors": [ "aradix85" ],
+    "description": "Self-voicing accessibility layer. Speech and braille through NVDA, for playing without a screen.",
+    "category": "misc",
+    "dependencies": [ "bn" ]
+  }
+]
