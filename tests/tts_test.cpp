@@ -179,3 +179,17 @@ TEST_CASE( "tts_lua_speech_reaches_the_sink", "[lua][tts]" )
 
     CHECK( r.rec->cancels() == 1 );
 }
+
+TEST_CASE( "tts_priority_from_int_rejects_nonsense", "[tts]" )
+{
+    CHECK( tts::priority_from_int( 0 ) == tts::priority::normal );
+    CHECK( tts::priority_from_int( 1 ) == tts::priority::next );
+    CHECK( tts::priority_from_int( 2 ) == tts::priority::now );
+
+    // A script can pass anything. Falling back to normal keeps the utterance
+    // audible; silently dropping it would leave the player with no way to tell
+    // that something had been said at all.
+    CHECK( tts::priority_from_int( -1 ) == tts::priority::normal );
+    CHECK( tts::priority_from_int( 3 ) == tts::priority::normal );
+    CHECK( tts::priority_from_int( 99999 ) == tts::priority::normal );
+}

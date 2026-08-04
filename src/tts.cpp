@@ -159,6 +159,18 @@ sink &get()
     return *current_sink();
 }
 
+priority priority_from_int( int value )
+{
+    switch( value ) {
+        case static_cast<int>( priority::next ):
+            return priority::next;
+        case static_cast<int>( priority::now ):
+            return priority::now;
+        default:
+            return priority::normal;
+    }
+}
+
 void output( const std::string &text, priority prio )
 {
     output( text, text, prio );

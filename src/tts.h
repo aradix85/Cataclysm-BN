@@ -91,6 +91,15 @@ class recording_sink : public sink
 sink &get();
 
 /**
+ * Turn a number handed in from Lua into a priority.
+ *
+ * Anything outside the three known values becomes `normal`. A script that passes
+ * nonsense should get an ordinary utterance, not undefined behaviour and not
+ * silence — the player would have no way to tell which had happened.
+ */
+priority priority_from_int( int value );
+
+/**
  * Say something on both channels. This is the entry point to use.
  *
  * Braille is a first-class channel here, not an afterthought, so the ordinary

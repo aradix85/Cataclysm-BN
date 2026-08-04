@@ -5,5 +5,5 @@
 gapi.speak( "three zombies" )
 gapi.speech_only( "spoken only" )
 gapi.braille_only( "brailled only" )
-gapi.speak_split( "four northeast", "4 NE", gapi.speech_priority_next )
+gapi.speak_split( "four northeast", "4 NE", gapi.speech_priority_next() )
 gapi.cancel_speech()

@@ -23,6 +23,7 @@
 #include "npc.h"
 #include "monster.h"
 #include "overmapbuffer.h"
+#include "tts.h"
 #include "weather.h"
 #include "line.h"
 #include "lua_action_menu.h"
@@ -89,6 +90,49 @@ void cata::detail::reg_game_api( sol::state &lua )
     luna::set_fx( lib, "bodytemp_norm", []() -> int { return BODYTEMP_NORM; } );
     luna::set_fx( lib, "bodytemp_hot", []() -> int { return BODYTEMP_HOT; } );
     luna::set_fx( lib, "rng", sol::resolve<int( int, int )>( &rng ) );
+
+    // Speech and braille, for the bn_access accessibility layer. The plain name
+    // reaches both channels: braille can then only be dropped by asking for one
+    // of the "_only" calls, never by forgetting it at a call site.
+    DOC( "Speech priority: queue behind everything already queued." );
+    luna::set_fx( lib, "speech_priority_normal",
+    []() -> int { return static_cast<int>( tts::priority::normal ); } );
+    DOC( "Speech priority: speak after the current utterance, ahead of the queue." );
+    luna::set_fx( lib, "speech_priority_next",
+    []() -> int { return static_cast<int>( tts::priority::next ); } );
+    DOC( "Speech priority: interrupt whatever is speaking and say this at once." );
+    luna::set_fx( lib, "speech_priority_now",
+    []() -> int { return static_cast<int>( tts::priority::now ); } );
+    DOC( "Speak text and send it to a braille display. Priority is optional." );
+    luna::set_fx( lib, "speak", sol::overload(
+    []( const std::string & text ) { tts::output( text ); },
+    []( const std::string & text, int prio ) {
+        tts::output( text, tts::priority_from_int( prio ) );
+    }
+                  ) );
+    DOC( "Speak one text and braille a different one. Priority is optional." );
+    luna::set_fx( lib, "speak_split", sol::overload(
+    []( const std::string & spoken, const std::string & brailled ) {
+        tts::output( spoken, brailled, tts::priority::normal );
+    },
+    []( const std::string & spoken, const std::string & brailled, int prio ) {
+        tts::output( spoken, brailled, tts::priority_from_int( prio ) );
+    }
+                  ) );
+    DOC( "Speak without sending anything to braille. Priority is optional." );
+    luna::set_fx( lib, "speech_only", sol::overload(
+    []( const std::string & text ) { tts::get().speak( text, tts::priority::normal ); },
+    []( const std::string & text, int prio ) {
+        tts::get().speak( text, tts::priority_from_int( prio ) );
+    }
+                  ) );
+    DOC( "Send to a braille display without speaking." );
+    luna::set_fx( lib, "braille_only",
+    []( const std::string & text ) { tts::get().braille( text ); } );
+    DOC( "Drop queued speech and stop speaking now." );
+    luna::set_fx( lib, "cancel_speech", []() { tts::get().cancel_speech(); } );
+    DOC( "Whether speech output is reachable. Costs a round trip; not per utterance." );
+    luna::set_fx( lib, "speech_available", []() -> bool { return tts::get().is_available(); } );
     DOC( "Get recent player message log entries. Returns array of { time=string, text=string }." );
     luna::set_fx( lib, "get_messages", []( sol::this_state lua_this, const int count ) {
         sol::state_view lua( lua_this );
