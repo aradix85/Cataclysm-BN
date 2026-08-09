@@ -1,0 +1,61 @@
+# Fork-only build recipe for the bn-access accessibility work.
+#
+# Upstream's matrix workflow builds nine platform configurations. This fork is
+# played on Windows with NVDA, so only two of those answer a question we care
+# about: does it build and pass its tests on Windows, and does the non-Windows
+# side of the speech code still compile at all. Linux answers the second one,
+# because the text-to-speech engine sits behind a _WIN32 switch that nothing
+# else in this project ever compiles.
+#
+# Only main triggers this by itself, and doing so publishes: the tilesets and
+# mods are bundled and the result is written into the rolling "experimental"
+# release, so one fixed address always holds the newest playable Windows build.
+# Every other branch, dev included, stays silent until started by hand from the
+# Actions tab, and a hand-started run on any branch other than main builds and
+# tests without publishing anything.
+#
+# Translations are left out on purpose: upstream fetches them from a
+# translation service with a token this fork does not have.
+#
+# This is a new file on purpose. It never conflicts when merging upstream,
+# unlike editing their matrix workflow would.
+
+name: bn-access build
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: [docs/**, scripts/**, "**.md", "**.mdx"]
+  workflow_dispatch:
+
+# One run per branch. A newer push makes an older run pointless.
+concurrency:
+  group: bn-access-build-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Windows and Linux
+    uses: ./.github/workflows/build.yml
+    with:
+      version-label: experimental
+      mode: ci
+      matrix-json: |
+        [
+          { "name": "Windows MSVC", "platform": "windows", "artifact": "windows-tiles-x64-msvc", "os": "windows-2022", "arch": "x64", "tiles": true, "sound": true, "ext": "zip", "content-type": "application/zip", "upload-artifact": true },
+          { "name": "Linux Tiles", "platform": "linux", "artifact": "linux-tiles-x64", "os": "ubuntu-latest", "tiles": true, "sound": true, "ext": "tar.gz", "content-type": "application/gzip" }
+        ]
+      download-translations: false
+      bundle-tilesets: ${{ github.ref_name == 'main' }}
+      bundle-registry-mods: true
+      package-artifacts: true
+      run-tests: true
+      android-localize: false
+      upload-to-release: ${{ github.ref_name == 'main' }}
+      upload-artifacts: true
+    secrets: inherit
+
+# Note on bundle-registry-mods: it stays on for every branch on purpose, even
+# though only main needs the mods. The action that sets up Deno fails in its
+# cleanup step when nothing ever used Deno during the job, which marks an
+# otherwise healthy build as failed. Bundling the mods always keeps that quiet.
