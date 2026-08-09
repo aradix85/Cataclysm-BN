@@ -36,6 +36,11 @@ concurrency:
 jobs:
   build:
     name: Windows and Linux
+    # Writing the packaged build into the release needs more than the token is
+    # handed by default, which is read-only. Asked for here rather than by
+    # loosening the repository-wide default, so nothing else gains write access.
+    permissions:
+      contents: write
     uses: ./.github/workflows/build.yml
     with:
       version-label: experimental
