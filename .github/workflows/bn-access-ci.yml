@@ -7,12 +7,12 @@
 # because the text-to-speech engine sits behind a _WIN32 switch that nothing
 # else in this project ever compiles.
 #
-# Only main triggers this by itself, and doing so publishes: the tilesets and
-# mods are bundled and the result is written into the rolling "experimental"
-# release, so one fixed address always holds the newest playable Windows build.
-# Every other branch, dev included, stays silent until started by hand from the
-# Actions tab, and a hand-started run on any branch other than main builds and
-# tests without publishing anything.
+# There is one branch, main, and every push to it builds, tests, and publishes:
+# the tilesets and mods are bundled and the result is written into the rolling
+# "experimental" release, so one fixed address always holds the newest playable
+# Windows build. Publishing happens only after the build and the tests pass, so
+# a broken push never replaces the playable version that is already there.
+# A run can also be started by hand from the Actions tab.
 #
 # Translations are left out on purpose: upstream fetches them from a
 # translation service with a token this fork does not have.
@@ -51,16 +51,16 @@ jobs:
           { "name": "Linux Tiles", "platform": "linux", "artifact": "linux-tiles-x64", "os": "ubuntu-latest", "tiles": true, "sound": true, "ext": "tar.gz", "content-type": "application/gzip", "upload-artifact": true }
         ]
       download-translations: false
-      bundle-tilesets: ${{ github.ref_name == 'main' }}
+      bundle-tilesets: true
       bundle-registry-mods: true
       package-artifacts: true
       run-tests: true
       android-localize: false
-      upload-to-release: ${{ github.ref_name == 'main' }}
+      upload-to-release: true
       upload-artifacts: true
     secrets: inherit
 
-# Note on bundle-registry-mods: it stays on for every branch on purpose, even
-# though only main needs the mods. The action that sets up Deno fails in its
-# cleanup step when nothing ever used Deno during the job, which marks an
-# otherwise healthy build as failed. Bundling the mods always keeps that quiet.
+# Note on bundle-registry-mods: it stays on even when the mods are not needed.
+# The action that sets up Deno fails in its cleanup step when nothing ever used
+# Deno during the job, which marks an otherwise healthy build as failed.
+# Bundling the mods always keeps that quiet.
