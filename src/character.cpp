@@ -132,6 +132,7 @@ static const activity_id ACT_TRY_SLEEP( "ACT_TRY_SLEEP" );
 static const activity_id ACT_WAIT_STAMINA( "ACT_WAIT_STAMINA" );
 
 static const bionic_id bio_eye_optic( "bio_eye_optic" );
+static const bionic_id bio_cqb( "bio_cqb" );
 
 static const matec_id WBLOCK_1( "WBLOCK_1" );
 static const matec_id WBLOCK_2( "WBLOCK_2" );
@@ -6654,7 +6655,9 @@ float Character::get_dodge_base() const
 {
     /** @EFFECT_DEX increases dodge base */
     /** @EFFECT_DODGE increases dodge_base */
-    return get_dex() / 4.0f + get_skill_level( skill_dodge );
+    return get_dex() / 4.0f + ( has_active_bionic( bionic_id( bio_cqb ) ) ? std::max( get_skill_level(
+                                    skill_dodge ), BIO_CQB_LEVEL ) : get_skill_level(
+                                    skill_dodge ) );
 }
 float Character::get_hit_base() const
 {
@@ -8170,9 +8173,11 @@ void Character::set_stamina( int new_stamina )
 
 void Character::mod_stamina( int mod, bool skill )
 {
+    int lost_stamina = ( stamina + mod >= 0 ) ? mod : -stamina;
     // If we're burning stamina then train athletics, unless we're losing stamina due to status effects or other non-standard causes.
-    if( skill && mod < 0 ) {
-        as_player()->practice( skill_swimming, roll_remainder( std::abs( mod ) / 500.0 ), 10, true );
+    if( skill && lost_stamina < 0 ) {
+        as_player()->practice( skill_swimming, roll_remainder( std::abs( lost_stamina ) / 500.0 ), 10,
+                               true );
         // Athletics skill also reduces stamina drain for relevant activities.
         const int skill = get_skill_level( skill_swimming );
         const float skill_cost = std::max( 0.667f, ( ( 30.0f - skill ) / 30.0f ) );
@@ -9334,10 +9339,11 @@ bool Character::armor_absorb( damage_unit &du, item &armor, const bodypart_id &b
         if( !one_in( num_parts_covered ) ) {
             return false;
         }
-        const int dmg_percent = std::max( raw_dmg - armor.chip_resistance( !armor.has_flag( flag_STURDY ) ),
-                                          1 );
-        // Chance to avoid armor damage is 50/67% (if sturdy) + 100 - ( raw_dmg - chip_resist )%
-        if( !one_in( armor.has_flag( flag_STURDY ) ? 3 : 2 ) || !x_in_y( dmg_percent, 100 ) ) {
+        const int armor_chip_resist = armor.chip_resistance( !armor.has_flag( flag_STURDY ) );
+        const bool armor_resisted = raw_dmg >= armor_chip_resist ? rng( 1,
+                                    raw_dmg ) <= armor_chip_resist : !one_in( 100 );
+        // Base chance to avoid armor damage is 50/67% (if sturdy), or if chip resist exceeds 1d<damage> (floor of 1%)
+        if( !one_in( armor.has_flag( flag_STURDY ) ? 3 : 2 ) || armor_resisted ) {
             return false;
         }
     }
@@ -9461,7 +9467,10 @@ void Character::on_dodge( Creature *source, int difficulty )
 
     // Even if we are not to train still call practice to prevent skill rust
     difficulty = std::max( difficulty, 0 );
-    as_player()->practice( skill_dodge, difficulty * 2, difficulty );
+    // Practice dodge skill except when using CQB bionic
+    if( !has_active_bionic( bio_cqb ) ) {
+        as_player()->practice( skill_dodge, difficulty * 2, difficulty );
+    }
 
     martial_arts_data->ma_ondodge_effects( *this );
 
