@@ -1,0 +1,39 @@
+# Give a failed build one more attempt before the failure stands.
+#
+# The tests still gate publishing: nothing is uploaded when they fail, so a
+# genuinely broken push never replaces the playable build in the release. What
+# this adds is a single retry, because upstream's suite contains checks that sit
+# on their own tolerance boundary and are decided by which tests ran before them
+# in the same process -- reported as cataclysmbn/Cataclysm-BN#10066. Those pass
+# on a second attempt; a real failure fails both times.
+#
+# This has to be its own workflow rather than a job inside the build: a run
+# cannot restart itself while it is still running, and `workflow_run` fires only
+# once the run has finished.
+#
+# The retry is bounded to one by the attempt number of the finished run, so a
+# repeatedly failing build stops after two attempts instead of looping.
+
+name: bn-access retry
+
+on:
+  workflow_run:
+    workflows: [bn-access build]
+    types: [completed]
+
+jobs:
+  rerun:
+    name: Rerun the failed jobs once
+    if: >-
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.run_attempt < 2
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Start the failed jobs again
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run rerun ${{ github.event.workflow_run.id }} --failed \
+            --repo "${{ github.repository }}"
