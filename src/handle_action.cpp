@@ -62,6 +62,7 @@
 #include "iuse.h"
 #include "lightmap.h"
 #include "line.h"
+#include "lua_actions.h"
 #include "magic/magic.h"
 #include "make_static.h"
 #include "map.h"
@@ -1891,6 +1892,10 @@ bool game::handle_action()
 
     if( act == ACTION_NULL ) {
         ZoneScopedN( "handle_action_resolve_action" );
+        if( cata::lua_actions::run_on_action_hook( action ) ) {
+            // A mod owns this action and has handled it. No turn passes.
+            return false;
+        }
         act = look_up_action( action );
 
         if( act == ACTION_KEYBINDINGS ) {

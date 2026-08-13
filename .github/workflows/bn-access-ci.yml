@@ -60,10 +60,10 @@ jobs:
       upload-artifacts: true
     secrets: inherit
 
-# Note on bundle-registry-mods: it stays on even when the mods are not needed.
-# The action that sets up Deno fails in its cleanup step when nothing ever used
-# Deno during the job, which marks an otherwise healthy build as failed.
-# Bundling the mods always keeps that quiet.
+  # Note on bundle-registry-mods: it stays on even when the mods are not needed.
+  # The action that sets up Deno fails in its cleanup step when nothing ever used
+  # Deno during the job, which marks an otherwise healthy build as failed.
+  # Bundling the mods always keeps that quiet.
 
   # Upstream's packaging step always makes a second, soundless Windows zip
   # alongside the full one. Turning that off would mean editing their build

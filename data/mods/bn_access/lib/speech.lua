@@ -21,44 +21,38 @@ local speech = {}
 --- Speak and braille the same text.
 --- @param text string
 --- @param prio integer|nil
-speech.say = function( text, prio )
+speech.say = function(text, prio)
   if prio then
-    gapi.speak( text, prio )
+    gapi.speak(text, prio)
   else
-    gapi.speak( text )
+    gapi.speak(text)
   end
 end
 
 --- Speak one text and braille a different one. Only for cases where the two
 --- genuinely have to differ; whether any such case exists is still open.
-speech.say_split = function( spoken, brailled, prio )
+speech.say_split = function(spoken, brailled, prio)
   if prio then
-    gapi.speak_split( spoken, brailled, prio )
+    gapi.speak_split(spoken, brailled, prio)
   else
-    gapi.speak_split( spoken, brailled )
+    gapi.speak_split(spoken, brailled)
   end
 end
 
-speech.speech_only = function( text, prio )
+speech.speech_only = function(text, prio)
   if prio then
-    gapi.speech_only( text, prio )
+    gapi.speech_only(text, prio)
   else
-    gapi.speech_only( text )
+    gapi.speech_only(text)
   end
 end
 
-speech.braille_only = function( text )
-  gapi.braille_only( text )
-end
+speech.braille_only = function(text) gapi.braille_only(text) end
 
 --- Drop everything queued and stop talking now.
-speech.silence = function()
-  gapi.cancel_speech()
-end
+speech.silence = function() gapi.cancel_speech() end
 
 --- True when NVDA is reachable. Costs a round trip; do not call per utterance.
-speech.available = function()
-  return gapi.speech_available()
-end
+speech.available = function() return gapi.speech_available() end
 
 return speech

@@ -1,0 +1,37 @@
+[
+  {
+    "id": "bn_access_smoke",
+    "type": "keybinding",
+    "category": "DEFAULTMODE",
+    "name": "Accessibility: speech check",
+    "bindings": [ { "input_method": "keyboard", "key": "F9" } ]
+  },
+  {
+    "id": "bn_access_context_smoke",
+    "type": "keybinding",
+    "category": "DEFAULTMODE",
+    "name": "Accessibility: input loop check",
+    "bindings": [ { "input_method": "keyboard", "key": "F10" } ]
+  },
+  {
+    "id": "NEXT",
+    "type": "keybinding",
+    "category": "BN_ACCESS_LOOP",
+    "name": "Next",
+    "bindings": [ { "input_method": "keyboard", "key": "j" } ]
+  },
+  {
+    "id": "PREV",
+    "type": "keybinding",
+    "category": "BN_ACCESS_LOOP",
+    "name": "Previous",
+    "bindings": [ { "input_method": "keyboard", "key": "k" } ]
+  },
+  {
+    "id": "QUIT",
+    "type": "keybinding",
+    "category": "BN_ACCESS_LOOP",
+    "name": "Leave",
+    "bindings": [ { "input_method": "keyboard", "key": "q" }, { "input_method": "keyboard", "key": "ESC" } ]
+  }
+]

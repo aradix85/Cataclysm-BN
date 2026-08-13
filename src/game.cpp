@@ -127,6 +127,7 @@
 #include "live_view.h"
 #include "loading_ui.h"
 #include "locations.h"
+#include "lua_actions.h"
 #include "npc.h"
 #include "magic/magic.h"
 #include "map.h"
@@ -3530,6 +3531,7 @@ input_context get_default_mode_input_context()
     ctxt.register_action( "MOUSE_MOVE" );
     ctxt.register_action( "SELECT" );
     ctxt.register_action( "SEC_SELECT" );
+    cata::lua_actions::register_all( ctxt );
     return ctxt;
 }
 

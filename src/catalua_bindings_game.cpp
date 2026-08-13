@@ -27,6 +27,7 @@
 #include "weather.h"
 #include "line.h"
 #include "lua_action_menu.h"
+#include "lua_actions.h"
 
 namespace
 {
@@ -198,6 +199,12 @@ void cata::detail::reg_game_api( sol::state &lua )
         std::vector<sol::protected_function> vec;
         vec.push_back( f );
         hooks.push_back( on_every_x_hooks{ interval, vec } );
+    } );
+
+    DOC( "Register a rebindable action for the default game mode. The action appears in the keybindings screen under the given display name, and a key bound to it reaches the `on_action` hook during ordinary play. Registering an id the game already uses is refused." );
+    luna::set_fx( lib, "register_default_mode_action", []( const std::string & id,
+    sol::optional<std::string> name ) -> void {
+        cata::lua_actions::register_action( id, name.value_or( std::string() ) );
     } );
 
     DOC( "Register a Lua-defined action menu entry in the in-game action menu." );

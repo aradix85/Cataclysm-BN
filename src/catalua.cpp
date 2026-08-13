@@ -43,6 +43,7 @@ constexpr int LUA_API_VERSION = 2;
 #include "mapgen_async.h"
 #include "lua_sidebar_widgets.h"
 #include "lua_action_menu.h"
+#include "lua_actions.h"
 #include "map.h"
 #include "mapgen_constructor.h"
 #include "messages.h"
@@ -145,6 +146,7 @@ void reload_lua_code()
     const auto &packs = world_generator->active_world->info->active_mod_order;
     try {
         cata::lua_action_menu::clear_entries();
+        cata::lua_actions::clear_actions();
         const int lua_mods = init::load_main_lua_scripts( state, packs );
         add_msg( m_good, _( "Reloaded %1$d lua mods." ), lua_mods );
     } catch( std::runtime_error &e ) {
@@ -306,6 +308,7 @@ void init_global_state_tables( lua_state &state, const std::vector<mod_id> &modl
 {
     sol::state &lua = state.lua;
     cata::lua_action_menu::clear_entries();
+    cata::lua_actions::clear_actions();
 
     sol::table active_mods = lua.create_table();
     sol::table mod_runtime = lua.create_table();
@@ -1195,6 +1198,7 @@ int get_lua_api_version()
 void lua_state_deleter::operator()( lua_state *state ) const
 {
     cata::lua_action_menu::clear_entries();
+    cata::lua_actions::clear_actions();
     bionic_callback_actors.clear();
     mutation_callback_actors.clear();
     lua_itrap_actors.clear();
