@@ -10,6 +10,7 @@
 #include "ime.h"
 #include "input.h"
 #include "json.h"
+#include "messages_hook.h"
 #include "output.h"
 #include "point.h"
 #include "sdl_wrappers.h"
@@ -190,6 +191,8 @@ class messages_impl
 
             refresh_cooldown( m, flags );
             hide_message_in_cooldown( m );
+
+            cata::run_on_add_msg_hook( m.message, m.type );
 
             if( coalesce_messages( m ) ) {
                 return;
