@@ -1,15 +1,11 @@
 [
   "bn",
-  "bn_lua",
   "bn_access",
   "no_npc_food",
   "novitamins",
   "No_Rail_Stations",
   "no_reviving_zombies",
   "limit_fungal_growth",
-  "udp_redux",
-  "pride_flags",
   "tablet_ebook",
-  "change_hairstyle",
   "cbm_slots"
 ]
