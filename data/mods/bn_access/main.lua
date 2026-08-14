@@ -28,6 +28,12 @@ local mod = game.mod_runtime[game.current_mod]
 
 mod.speech = speech
 
+-- This file runs while the world is being built, which takes about twenty
+-- seconds of data loading and mapgen and says nothing at all. One word here and
+-- one when the world is ready turn that silence into a bracket: this is the
+-- start of the wait, "ready" is the end of it, and neither is an error.
+speech.say("Loading.")
+
 -- How far the overview looks. Creatures are limited by what the character can
 -- actually see; the terrain scan is a square of this radius, so it is also the
 -- cost of the command -- keep it small enough that a keypress answers at once.
