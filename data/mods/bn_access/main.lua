@@ -1,8 +1,13 @@
 -- bn_access: self-voicing accessibility layer for Cataclysm: Bright Nights.
 --
--- Loading this mod is silent on purpose. It speaks when the game says something
--- to the player and when the game demands an answer. Nothing else, and nothing
--- is asked of the player first.
+-- Loading this mod is silent until the world is ready, and then it says so
+-- once. Before that word, silence means the game is still loading; after it,
+-- silence means something is wrong. Without that line the two are the same
+-- sound, and a key pressed during a load that takes seconds is answered by
+-- nothing at all -- which is what pressing harder is a response to.
+--
+-- Nothing else announces itself. It speaks when the game says something to the
+-- player and when the game demands an answer.
 --
 -- Blocking prompts speak because a prompt accepts its own two or four keys and
 -- swallows every other one, so a silent prompt makes every command unreachable.
@@ -30,6 +35,23 @@ local RANGE = 12
 local LANDMARK_RANGE = 8
 
 gapi.register_default_mode_action("bn_access_surroundings", "Accessibility: what is around me")
+
+-- The world is ready and the game is about to read a key. A new game reaches
+-- this through on_game_started and a loaded save through on_game_load, and a
+-- save fires the load hook twice, so the word is said once and only once.
+--
+-- The Lua state is rebuilt per world, so this resets by itself when another
+-- world is loaded in the same session.
+local said_ready = false
+
+local function announce_ready()
+  if said_ready then return end
+  said_ready = true
+  speech.say("Accessibility ready.")
+end
+
+game.add_hook("on_game_started", { priority = 100, fn = announce_ready })
+game.add_hook("on_game_load", { priority = 100, fn = announce_ready })
 
 -- The message log speaks. Registered at a high priority so the layer sees the
 -- message before another mod can alter or veto it.
