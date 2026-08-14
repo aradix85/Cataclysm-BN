@@ -11,9 +11,12 @@
 
 local prompts = {}
 
--- Beyond this many options, the list is replaced by a count. A prompt is the
--- one place the player cannot escape, so it must stay short (F5).
-local MAX_LISTED_OPTIONS = 4
+-- Every option is read out. Measured across the whole of src/: the largest
+-- query_popup in the game offers four options (game.cpp, the one that asks
+-- whether to cancel or ignore an activity), so a prompt is bounded by the game
+-- itself and needs no cap of ours. F5 is about lists that can run away -- a
+-- recipe browser, a tile-by-tile read -- and a prompt is not one of them.
+-- Replacing an option by a count would hide exactly what has to be answered.
 
 --- Strip what is drawn rather than said.
 ---
@@ -98,13 +101,6 @@ prompts.utterances = function(state, previous)
 
   local count = #state.options
   if count == 0 then return out end
-
-  if count > MAX_LISTED_OPTIONS then
-    out[#out + 1] = string.format("%d options", count)
-    local selected = selected_utterance(state)
-    if selected then out[#out + 1] = selected end
-    return out
-  end
 
   for i = 1, count do
     out[#out + 1] = option_utterance(state.options[i], i == state.cursor)

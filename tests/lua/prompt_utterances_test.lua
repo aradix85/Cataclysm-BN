@@ -41,20 +41,21 @@ test_data.waiting = say(waiting("|"), nil)
 -- look like a new prompt and the game would talk forever.
 test_data.waiting_spun = say(waiting("/"), waiting("|"))
 
--- Too many options to read out. A prompt cannot be escaped, so it stays short.
-local many = prompts.state({
-  text = "Which direction?",
-  category = "MANY",
+-- The largest prompt the game has: every option is read, nothing is replaced
+-- by a count. Taken from the real one in game.cpp, which asks whether to cancel
+-- or ignore a running activity.
+local largest = prompts.state({
+  text = "Stop and drop the plank?",
+  category = "CANCEL_ACTIVITY_OR_IGNORE_QUERY",
   options = {
-    { id = "N", name = "North" },
-    { id = "E", name = "East" },
-    { id = "S", name = "South" },
-    { id = "W", name = "West" },
-    { id = "Q", name = "Cancel" },
+    { id = "YES", name = "Yes" },
+    { id = "NO", name = "No" },
+    { id = "MANAGER", name = "Activity manager" },
+    { id = "IGNORE", name = "Ignore further distractions" },
   },
   cursor = 3,
 })
-test_data.many_options = say(many, nil)
+test_data.largest_prompt = say(largest, nil)
 
 -- Nothing to say produces nothing.
 test_data.empty = say(prompts.state({ text = "", category = "NONE", options = {} }), nil)

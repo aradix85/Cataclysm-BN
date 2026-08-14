@@ -50,9 +50,12 @@ TEST_CASE("bn_access_prompt_utterances", "[lua]") {
     // would make every frame a new prompt and never stop talking.
     CHECK(result_of(lua, "waiting_spun").empty());
 
-    // Bounded (F5). A prompt holds the keyboard, so a long list is replaced by
-    // a count plus the one option that can be answered with return.
-    CHECK(result_of(lua, "many_options") == "Which direction? / 5 options / South, selected");
+    // Nothing is ever replaced by a count. Measured across src/: the largest
+    // query_popup in the game offers four options, so a prompt is bounded by
+    // the game itself, and summarising one would hide what has to be answered.
+    CHECK(result_of(lua, "largest_prompt")
+          == "Stop and drop the plank? / Yes / No / Activity manager, selected / "
+             "Ignore further distractions");
 
     // Silence is information (P5): no text and no options says nothing at all.
     CHECK(result_of(lua, "empty").empty());
