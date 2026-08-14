@@ -10,11 +10,5 @@ test_data.speaks_prose = tostring(messages.should_speak(MsgType.neutral, "You hi
 test_data.speaks_border = tostring(messages.should_speak(MsgType.neutral, text.clean("--\\ // --")))
 test_data.speaks_debug = tostring(messages.should_speak(MsgType.debug, "Spawned 3 monsters."))
 
--- Taking damage must not wait behind a list of things lying on the floor (P7).
-test_data.urgency_bad = messages.urgency(MsgType.bad)
-test_data.urgency_warning = messages.urgency(MsgType.warning)
-test_data.urgency_info = messages.urgency(MsgType.info)
-test_data.urgency_good = messages.urgency(MsgType.good)
-
 -- Markup and wrapping are the game drawing, not the game speaking.
 test_data.cleaned = text.clean("<color_light_red>You are  bleeding</color>\n  badly. ")

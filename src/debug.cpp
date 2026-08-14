@@ -1556,6 +1556,12 @@ void output_repetitions( std::ostream &out )
 detail::DebugLogGuard::~DebugLogGuard()
 {
     *s << '\n';
+    // Flush every completed line. The stream is otherwise only written out when
+    // the game exits, which makes the log useless for diagnosing a running game
+    // -- and this project diagnoses a running game constantly, since the owner
+    // cannot read the screen and the log is the instrument that replaces it.
+    // The game logs sparsely, so the cost is not measurable against a frame.
+    s->flush();
 }
 
 detail::DebugLogGuard detail::realDebugLog( DL lev, DC cl, const char *filename,

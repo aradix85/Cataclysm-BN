@@ -33,17 +33,16 @@ gapi.register_default_mode_action("bn_access_surroundings", "Accessibility: what
 
 -- The message log speaks. Registered at a high priority so the layer sees the
 -- message before another mod can alter or veto it.
+--
+-- Everything goes out in the order it happened, at one priority. A run of short
+-- sentences does not need a queue, and a message that jumps ahead of another can
+-- discard it at NVDA rather than merely overtake it.
 game.add_hook("on_add_msg", {
   priority = 100,
   fn = function(params)
     local body = text.clean(params.text)
     if not messages.should_speak(params.type, body) then return end
-
-    if messages.urgency(params.type) == "next" then
-      speech.say(body, gapi.speech_priority_next())
-    else
-      speech.say(body)
-    end
+    speech.say(body)
   end,
 })
 

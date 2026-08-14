@@ -76,15 +76,6 @@ TEST_CASE("bn_access_message_policy", "[lua]") {
     CHECK(result_of(lua, "speaks_border") == "false");
     CHECK(result_of(lua, "speaks_debug") == "false");
 
-    // Speech queues at NVDA and nothing in the game throttles it (P8), so bad
-    // news has to be able to pass ahead of what is already waiting (P7). Never
-    // "now": that discards what is speaking, and in a fight every hit is bad
-    // news, so each would silence the one before it.
-    CHECK(result_of(lua, "urgency_bad") == "next");
-    CHECK(result_of(lua, "urgency_warning") == "next");
-    CHECK(result_of(lua, "urgency_info") == "normal");
-    CHECK(result_of(lua, "urgency_good") == "normal");
-
     // Markup and the whitespace left by terminal wrapping are drawing, not
     // speech, and reach the layer inside otherwise ordinary prose.
     CHECK(result_of(lua, "cleaned") == "You are bleeding badly.");
