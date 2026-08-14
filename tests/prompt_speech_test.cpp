@@ -90,6 +90,53 @@ TEST_CASE("bn_access_message_policy", "[lua]") {
     CHECK(result_of(lua, "cleaned") == "You are bleeding badly.");
 }
 
+// Bearings are the one thing a player cannot check for themselves: a wrong
+// direction sends them into a wall or into a zombie, and nothing in the game
+// would contradict it. So every compass point is pinned here.
+TEST_CASE("bn_access_surroundings_overview", "[lua]") {
+    sol::state lua = make_lua_state();
+    sol::table test_data = lua.create_table();
+    lua.globals()["test_data"] = test_data;
+
+    run_lua_script(lua, "tests/lua/surroundings_test.lua");
+
+    CHECK(result_of(lua, "east") == "east");
+    CHECK(result_of(lua, "northeast") == "northeast");
+    CHECK(result_of(lua, "north") == "north");
+    CHECK(result_of(lua, "northwest") == "northwest");
+    CHECK(result_of(lua, "west") == "west");
+    CHECK(result_of(lua, "southwest") == "southwest");
+    CHECK(result_of(lua, "south") == "south");
+    CHECK(result_of(lua, "southeast") == "southeast");
+
+    // Ten east and one south is east. Snapping by the sign of each axis would
+    // call it southeast and make a long approach wobble between two words.
+    CHECK(result_of(lua, "mostly_east") == "east");
+
+    // Standing on the thing has no direction, and the caller has to be able to
+    // tell that apart from a direction.
+    CHECK(result_of(lua, "zero") == "nil");
+
+    // A diagonal is one step, as it is when walking, so the number spoken is the
+    // number of moves rather than a distance the player has to convert.
+    CHECK(test_data["diagonal_distance"].get<int>() == 3);
+    CHECK(result_of(lua, "described") == "4 northeast");
+
+    // Grouped, enemies first, one utterance per group, nearest named (P2, P4).
+    CHECK(
+        result_of(lua, "overview")
+        == "3 enemies. Nearest: skeleton, 2 southeast. / "
+           "1 creature. rabbit, 6 southeast. / "
+           "1 way out. closed wood door, 3 east.");
+
+    // One reads as one rather than as a count with a nearest attached.
+    CHECK(result_of(lua, "single") == "1 enemy. zombie, 2 north.");
+
+    // Asked and answered (P5 is about not volunteering emptiness, not about
+    // ignoring a question).
+    CHECK(result_of(lua, "empty") == "Nothing nearby.");
+}
+
 // The perception queries are the layer's eyes. A binding that is missing or
 // misnamed does not crash: the collector simply never reports that channel, and
 // the player is never told the thing exists. That is the infrared-goggles bug,
@@ -146,6 +193,8 @@ TEST_CASE("bn_access_scripts_parse", "[lua]") {
              "data/mods/bn_access/lib/speech.lua",
              "data/mods/bn_access/lib/text.lua",
              "data/mods/bn_access/lib/messages.lua",
+             "data/mods/bn_access/lib/bearing.lua",
+             "data/mods/bn_access/lib/surroundings.lua",
              "data/mods/bn_access/lib/prompts.lua",
          }) {
         INFO(script);

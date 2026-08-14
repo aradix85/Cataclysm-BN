@@ -1,0 +1,9 @@
+[
+  {
+    "id": "bn_access_surroundings",
+    "type": "keybinding",
+    "category": "DEFAULTMODE",
+    "name": "Accessibility: what is around me",
+    "bindings": [ { "input_method": "keyboard", "key": "F9" } ]
+  }
+]
