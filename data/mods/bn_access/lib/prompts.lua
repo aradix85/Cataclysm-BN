@@ -9,6 +9,8 @@
 -- arrow key is F1 and F5 at once, and saying nothing when the selection moved
 -- is F2, the failure that cost a blind CDDA player playability outright.
 
+local text = require("./text")
+
 local prompts = {}
 
 -- Every option is read out. Measured across the whole of src/: the largest
@@ -18,20 +20,17 @@ local prompts = {}
 -- recipe browser, a tile-by-tile read -- and a prompt is not one of them.
 -- Replacing an option by a count would hide exactly what has to be answered.
 
---- Strip what is drawn rather than said.
+--- Strip what is drawn rather than said, plus the one thing only a popup has.
 ---
---- Colour tags are markup. The bar of a waiting popup is worse than noise: it
---- cycles through | / - \ on every redraw, so comparing on the raw text would
---- make every frame look like a new prompt and announce it forever.
---- @param text string|nil
+--- The bar of a waiting popup is worse than markup: it cycles through | / - \
+--- on every redraw, so comparing on the raw text would make every frame look
+--- like a new prompt and announce it forever.
+--- @param s string|nil
 --- @return string
-prompts.clean = function(text)
-  if not text or text == "" then return "" end
-  local out = text:gsub("</?color[^>]*>", "")
-  out = out:gsub("^%s*[|/\\-]%s+", "")
-  out = out:gsub("%s+", " ")
-  out = out:gsub("^ ", ""):gsub(" $", "")
-  return out
+prompts.clean = function(s)
+  local out = text.clean(s)
+  out = out:gsub("^[|/\\-] ", "")
+  return text.clean(out)
 end
 
 --- Normalise one firing of the hook into a plain table, with the text already
