@@ -718,6 +718,18 @@ void cata::detail::reg_hooks_examples( sol::state &lua )
     DOC_PARAMS( "params" );
     luna::set_fx( lib, "on_player_try_move", []( const sol::table & ) {} );
 
+    DOC( "Called when the player's move was refused and the game said nothing about it.  " );
+    DOC( "The refusals the game reports itself -- bumping into something while blind or stunned, "
+         "a locked door, a barred door -- arrive as messages instead.  " );
+    DOC( "The hook receives a table with keys:  " );
+    DOC( "* `player` (Player)  " );
+    DOC( "* `from` (TripointBubMs)  " );
+    DOC( "* `to` (TripointBubMs)  " );
+    DOC( "* `obstacle` (string): what the game itself would name as being in the way  " );
+    DOC( "The move has already failed, so the return value is ignored." );
+    DOC_PARAMS( "params" );
+    luna::set_fx( lib, "on_player_move_refused", []( const sol::table & ) {} );
+
     DOC( "Called when an NPC attempts to move.  " );
     DOC( "All registered callbacks run; if any returns false, movement is blocked.  " );
     DOC( "The hook receives a table with keys:  " );

@@ -48,6 +48,7 @@
 #include "melee.h"
 #include "messages.h"
 #include "monster.h"
+#include "move_hook.h"
 #include "mtype.h"
 #include "npc.h"
 #include "options.h"
@@ -771,6 +772,12 @@ bool avatar_action::move( avatar &you, map &m, const tripoint_rel_ms &d )
         add_msg( _( "That door is locked!" ) );
     } else if( m.ter( dest_loc ) == t_door_bar_locked ) {
         add_msg( _( "You rattle the bars but the door is locked!" ) );
+    } else {
+        // Every branch above tells the player why the move failed; this one is the
+        // refusal the game passes over in silence, on the assumption the obstacle
+        // was seen.
+        cata::run_on_player_move_refused_hook( you, you.bub_pos(), dest_loc,
+                                               m.obstacle_name( dest_loc ) );
     }
     return false;
 }
