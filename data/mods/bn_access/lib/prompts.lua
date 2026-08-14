@@ -88,7 +88,9 @@ end
 prompts.utterances = function(state, previous)
   local out = {}
 
-  if same_prompt(state, previous) then
+  -- same_prompt is false without a previous state; saying so here as well keeps
+  -- the reason the fields below are safe to read next to the reading of them.
+  if previous and same_prompt(state, previous) then
     if state.cursor ~= previous.cursor then
       local moved = selected_utterance(state)
       if moved then out[#out + 1] = moved end

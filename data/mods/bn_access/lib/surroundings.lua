@@ -11,7 +11,8 @@ local bearing = require("./bearing")
 
 local surroundings = {}
 
---- @param entry table { name, dx, dy }
+--- @param entries table[] each { name, dx, dy }
+--- @return table|nil the closest entry, nil when there are none
 local function nearest_of(entries)
   local best, best_distance = nil, nil
   for _, entry in ipairs(entries) do
@@ -24,8 +25,9 @@ local function nearest_of(entries)
 end
 
 local function group_line(entries, singular, plural)
-  if #entries == 0 then return nil end
   local nearest = nearest_of(entries)
+  -- Empty is silence (P5), and asking for the nearest is how that is known.
+  if not nearest then return nil end
   local where = bearing.describe(nearest.dx, nearest.dy)
   local what = nearest.name
 
