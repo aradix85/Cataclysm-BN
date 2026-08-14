@@ -1,6 +1,8 @@
 #include "catalua_impl.h"
 #include "catalua_sol.h"
 #include "catch/catch.hpp"
+#include "map_helpers.h"
+#include "player_helpers.h"
 
 #include <string>
 
@@ -86,6 +88,49 @@ TEST_CASE("bn_access_message_policy", "[lua]") {
     // Markup and the whitespace left by terminal wrapping are drawing, not
     // speech, and reach the layer inside otherwise ordinary prose.
     CHECK(result_of(lua, "cleaned") == "You are bleeding badly.");
+}
+
+// The perception queries are the layer's eyes. A binding that is missing or
+// misnamed does not crash: the collector simply never reports that channel, and
+// the player is never told the thing exists. That is the infrared-goggles bug,
+// so the surface is asserted here rather than trusted.
+TEST_CASE("bn_access_perception_bindings", "[lua]") {
+    clear_avatar();
+    clear_map();
+
+    sol::state lua = make_lua_state();
+    sol::table test_data = lua.create_table();
+    lua.globals()["test_data"] = test_data;
+
+    run_lua_script(lua, "tests/lua/perception_bindings_test.lua");
+
+    // The avatar is standing there, so the square is passable and has a floor.
+    // That holds on any map, which is what makes it assertable at all.
+    CHECK(test_data["standing_is_passable"].get<std::string>() == "true");
+    CHECK(test_data["has_floor"].get<std::string>() == "true");
+    CHECK(test_data["move_cost"].get<int>() > 0);
+
+    // Percentages, not the one-in-a-million the game stores them as.
+    CHECK(test_data["coverage"].get<int>() >= 0);
+    CHECK(test_data["coverage"].get<int>() <= 100);
+    CHECK(test_data["block_chance"].get<int>() >= 0);
+    CHECK(test_data["block_chance"].get<int>() <= 100);
+
+    // Terrain always describes itself; furniture only when there is any, and an
+    // empty string rather than a nil is what lets a caller treat both alike.
+    CHECK_FALSE(test_data["ter_description"].get<std::string>().empty());
+    CHECK(test_data["furn_description"].get<sol::optional<std::string>>().has_value());
+    CHECK(test_data["signage"].get<sol::optional<std::string>>().has_value());
+    CHECK(test_data["sound"].get<sol::optional<std::string>>().has_value());
+    CHECK(test_data["footsteps"].get<int>() >= 0);
+
+    // The special senses reach a creature the eyes cannot. Nothing is asserted
+    // about the answer for the avatar itself -- only that both questions can be
+    // asked, and that both descriptions come back as a list.
+    CHECK(test_data["infrared_self"].get<sol::optional<std::string>>().has_value());
+    CHECK(test_data["specials_self"].get<sol::optional<std::string>>().has_value());
+    CHECK(test_data["describe_infrared"].get<int>() >= 0);
+    CHECK(test_data["describe_specials"].get<int>() >= 0);
 }
 
 // A syntax error anywhere in the mod's own scripts is invisible until the game
