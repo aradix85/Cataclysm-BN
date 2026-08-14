@@ -72,7 +72,7 @@ add_link_options(
     /DEBUG
     /OPT:REF
     /OPT:ICF
-    /LTCG:OFF
+    /LTCG:INCREMENTAL
     /MANIFEST:NO
     /INCREMENTAL:NO
     /DYNAMICBASE
