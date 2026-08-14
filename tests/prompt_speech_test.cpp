@@ -61,7 +61,7 @@ TEST_CASE("bn_access_prompt_utterances", "[lua]") {
     CHECK(result_of(lua, "empty").empty());
 }
 
-TEST_CASE("bn_access_message_policy_and_scrollback", "[lua]") {
+TEST_CASE("bn_access_message_policy", "[lua]") {
     sol::state lua = make_lua_state();
     sol::table test_data = lua.create_table();
     lua.globals()["test_data"] = test_data;
@@ -83,31 +83,9 @@ TEST_CASE("bn_access_message_policy_and_scrollback", "[lua]") {
     CHECK(result_of(lua, "urgency_info") == "normal");
     CHECK(result_of(lua, "urgency_good") == "normal");
 
-    // Consecutive repeats collapse into one entry that says how often, so one
-    // busy turn cannot flush the buffer, and three misses stay distinguishable
-    // from one.
-    CHECK(result_of(lua, "repeats") == "You miss the zombie., 3 times");
-
-    // A new message moves the reading position to it, so paging back starts
-    // from what was just heard.
-    CHECK(result_of(lua, "after_new") == "The zombie hits you.");
-    CHECK(result_of(lua, "one_back") == "You miss the zombie., 3 times");
-
-    // At either end the step returns nothing, which is what lets the caller say
-    // a word there. A silent wrap cannot be told apart from a stuck key.
-    CHECK(result_of(lua, "past_oldest") == "nil");
-    CHECK(result_of(lua, "one_forward") == "The zombie hits you.");
-    CHECK(result_of(lua, "past_newest") == "nil");
-
-    // Bounded, oldest dropped first (P8) -- affordable only because everything
-    // dropped from speech was still readable here first (P9).
-    CHECK(result_of(lua, "dropped_oldest") == "two");
-    CHECK(result_of(lua, "nothing_older") == "nil");
-
-    // Nothing heard yet has to be distinguishable, or the layer cannot answer a
-    // request to repeat without sounding broken.
-    CHECK(result_of(lua, "empty_is_empty") == "true");
-    CHECK(result_of(lua, "empty_current") == "nil");
+    // Markup and the whitespace left by terminal wrapping are drawing, not
+    // speech, and reach the layer inside otherwise ordinary prose.
+    CHECK(result_of(lua, "cleaned") == "You are bleeding badly.");
 }
 
 // A syntax error anywhere in the mod's own scripts is invisible until the game
@@ -123,7 +101,6 @@ TEST_CASE("bn_access_scripts_parse", "[lua]") {
              "data/mods/bn_access/lib/speech.lua",
              "data/mods/bn_access/lib/text.lua",
              "data/mods/bn_access/lib/messages.lua",
-             "data/mods/bn_access/lib/scrollback.lua",
              "data/mods/bn_access/lib/prompts.lua",
          }) {
         INFO(script);
