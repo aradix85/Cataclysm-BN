@@ -3230,6 +3230,12 @@ void game::handle_key_blocking_activity()
 {
     input_context ctxt = get_default_mode_input_context();
     const std::string action = ctxt.handle_input( 0 );
+    if( cata::lua_actions::run_on_action_hook( action ) ) {
+        // A mod owns this action. Handled here as well as in handle_action, or a
+        // command would be dead for as long as an activity or a trip runs -- the
+        // very moment a player most needs to ask what is going on.
+        return;
+    }
     bool refresh = true;
     if( action == "pause" || action == "main_menu" ) {
         if( u.activity->interruptable_with_kb ) {

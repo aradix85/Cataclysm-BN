@@ -205,3 +205,26 @@ TEST_CASE("lua_input_context_bindings", "[lua][actions]") {
     CHECK(actions[0].name == "Test action");
     CHECK(actions[1].name == "bn_access_test_action_unnamed");
 }
+
+// The input layer answers with sentinels when nothing was pressed or when a key
+// matched nothing. The activity poll runs ten times a second, so firing the hook
+// on those would call into Lua continuously while the character is busy.
+TEST_CASE("lua_hook_on_action_ignores_input_sentinels", "[lua][actions]") {
+    sol::state& lua = test_lua_hooks::global_lua_state();
+
+    const auto calls = std::make_shared<int>(0);
+    const auto [list, idx] = test_lua_hooks::push_hook(lua, "on_action", 0, [calls](sol::table) {
+        ++*calls;
+    });
+    test_lua_hooks::hook_cleanup cleanup{list, idx};
+
+    CHECK_FALSE(cata::lua_actions::run_on_action_hook("TIMEOUT"));
+    CHECK_FALSE(cata::lua_actions::run_on_action_hook("ERROR"));
+    CHECK_FALSE(cata::lua_actions::run_on_action_hook("ANY_INPUT"));
+    CHECK_FALSE(cata::lua_actions::run_on_action_hook(""));
+    CHECK(*calls == 0);
+
+    // A real action still reaches the handler.
+    cata::lua_actions::run_on_action_hook("bn_access_status");
+    CHECK(*calls == 1);
+}

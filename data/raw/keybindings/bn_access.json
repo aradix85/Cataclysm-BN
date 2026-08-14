@@ -4,7 +4,11 @@
     "type": "keybinding",
     "category": "DEFAULTMODE",
     "name": "Accessibility: speech check",
-    "bindings": [ { "input_method": "keyboard", "key": "F9" } ]
+    "bindings": [
+      { "input_method": "keyboard", "key": "F9" },
+      { "input_method": "keyboard", "key": "F5" },
+      { "input_method": "keyboard", "key": "TAB" }
+    ]
   },
   {
     "id": "bn_access_context_smoke",

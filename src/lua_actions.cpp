@@ -63,7 +63,13 @@ void register_all( input_context &ctxt )
 
 bool run_on_action_hook( const std::string &action )
 {
-    if( action.empty() || !has_hooks( "on_action" ) ) {
+    // The sentinels the input layer returns when nothing was pressed, when the
+    // key matched nothing, or when a key was swallowed. Firing the hook on those
+    // would call into Lua ten times a second while an activity polls for input.
+    if( action.empty() || action == "TIMEOUT" || action == "ERROR" || action == "ANY_INPUT" ) {
+        return false;
+    }
+    if( !has_hooks( "on_action" ) ) {
         return false;
     }
 
