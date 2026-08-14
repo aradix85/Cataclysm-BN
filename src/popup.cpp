@@ -9,6 +9,7 @@
 #include "ime.h"
 #include "input.h"
 #include "output.h"
+#include "popup_hook.h"
 #include "sdl_wrappers.h"
 #include "ui_manager.h"
 
@@ -265,6 +266,8 @@ query_popup::result query_popup::query_once()
     if( !anykey && !cancel && options.empty() ) {
         return { false, "ERROR", {} };
     }
+
+    cata::fire_on_query_popup( category, text, options, cur );
 
     if( test_mode ) {
         return { false, "ERROR", {} };
