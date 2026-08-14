@@ -74,34 +74,37 @@ local function square_name(pos)
   return here:get_ter_at(pos):obj():name()
 end
 
--- Every attempt to move, including the ones the game refuses. This hook fires
--- before the move resolves, so whether it will be refused is worked out here
--- rather than waited for: an impassable square is one the game will not enter.
---
--- A closed door is impassable and is not a refusal: walking into it opens it.
--- Naming it is right either way, so it needs no special case beyond not calling
--- it blocked.
+-- A step the game is willing to take. The square is one it will enter, so this
+-- is where the ground underfoot is named, and only when it changes.
 --
 -- Returns nothing. Returning false would veto the move, and this hook only
 -- watches.
 game.add_hook("on_player_try_move", {
   priority = 100,
   fn = function(params)
-    local here = gapi.get_map()
-    local to = params.to
-    local from = params.from
+    local name = square_name(params.to)
 
-    local passable = perception.move_cost_at(to) > 0
-    local door = here:has_ter_flag_at("DOOR", to)
-    local name = square_name(to)
+    for _, line in ipairs(movement.utterances({ name = name, changed = name ~= square_name(params.from) })) do
+      speech.say(line)
+    end
+  end,
+})
 
-    for _, line in
-      ipairs(movement.utterances({
-        blocked = not passable and not door,
-        name = name,
-        changed = name ~= square_name(from),
-      }))
-    do
+-- A step the game refuses in silence, which is the wall. An impassable square is
+-- dropped long before on_player_try_move fires, so a refusal needs a firing point
+-- of its own, and the obstacle is named by the game rather than looked up here:
+-- that name covers a vehicle in the way, which terrain and furniture do not.
+--
+-- A refusal on a square that can be entered came from something the game did
+-- explain -- a vehicle that cannot be boarded while riding, a creature that
+-- cannot be dragged -- and that explanation arrives as a message and is spoken
+-- there. So only an impassable square answers here.
+game.add_hook("on_player_move_refused", {
+  priority = 100,
+  fn = function(params)
+    if perception.move_cost_at(params.to) > 0 then return end
+
+    for _, line in ipairs(movement.utterances({ blocked = true, name = params.obstacle })) do
       speech.say(line)
     end
   end,

@@ -13,7 +13,7 @@
 
 local movement = {}
 
---- @param step table { blocked = boolean, name = string, changed = boolean }
+--- @param step table { blocked = boolean|nil, name = string, changed = boolean|nil }
 --- @return string[]
 movement.utterances = function(step)
   if step.blocked then
