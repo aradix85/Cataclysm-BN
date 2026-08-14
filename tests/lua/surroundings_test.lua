@@ -43,3 +43,24 @@ test_data.single = table.concat(surroundings.overview({ enemies = { { name = "zo
 -- Asked and answered: an empty field says so rather than staying silent, which
 -- cannot be told apart from a key that never arrived.
 test_data.empty = table.concat(surroundings.overview({}), " / ")
+
+-- What a step reports, and what it does not.
+
+local movement = require("../../data/mods/bn_access/lib/movement")
+
+local function say(step) return table.concat(movement.utterances(step), " / ") end
+
+-- The game refuses a blocked move in silence, assuming the wall was seen. This
+-- is the one case that must always speak, and it names what stopped the step.
+test_data.blocked = say({ blocked = true, name = "wall", changed = true })
+
+-- Blocked wins over everything: you did not go anywhere, so what the square is
+-- called matters less than the fact that you are still where you were.
+test_data.blocked_unchanged = say({ blocked = true, name = "wall", changed = false })
+
+-- A step onto different ground says what it is.
+test_data.changed = say({ blocked = false, name = "grass", changed = true })
+
+-- A step across the same floor says nothing. Announcing every step would bury
+-- the blocked case, which is the one that matters.
+test_data.unchanged = say({ blocked = false, name = "floor", changed = false })

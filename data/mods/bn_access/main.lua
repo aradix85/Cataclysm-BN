@@ -15,6 +15,7 @@
 local speech = require("./lib/speech")
 local prompts = require("./lib/prompts")
 local messages = require("./lib/messages")
+local movement = require("./lib/movement")
 local surroundings = require("./lib/surroundings")
 local text = require("./lib/text")
 
@@ -62,6 +63,48 @@ game.add_hook("on_query_popup", {
       speech.say(line)
     end
     open_prompt = state
+  end,
+})
+
+-- The name of what is on a square: furniture if there is any, since a stove on
+-- a floor is a stove, and the terrain otherwise.
+local function square_name(pos)
+  local here = gapi.get_map()
+  local furn = here:get_furn_at(pos)
+  if not furn:str_id():is_null() then return furn:obj():name() end
+  return here:get_ter_at(pos):obj():name()
+end
+
+-- Every attempt to move, including the ones the game refuses. This hook fires
+-- before the move resolves, so whether it will be refused is worked out here
+-- rather than waited for: an impassable square is one the game will not enter.
+--
+-- A closed door is impassable and is not a refusal: walking into it opens it.
+-- Naming it is right either way, so it needs no special case beyond not calling
+-- it blocked.
+--
+-- Returns nothing. Returning false would veto the move, and this hook only
+-- watches.
+game.add_hook("on_player_try_move", {
+  priority = 100,
+  fn = function(params)
+    local here = gapi.get_map()
+    local to = params.to
+    local from = params.from
+
+    local passable = perception.move_cost_at(to) > 0
+    local door = here:has_ter_flag_at("DOOR", to)
+    local name = square_name(to)
+
+    for _, line in
+      ipairs(movement.utterances({
+        blocked = not passable and not door,
+        name = name,
+        changed = name ~= square_name(from),
+      }))
+    do
+      speech.say(line)
+    end
   end,
 })
 

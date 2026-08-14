@@ -135,6 +135,17 @@ TEST_CASE("bn_access_surroundings_overview", "[lua]") {
     // Asked and answered (P5 is about not volunteering emptiness, not about
     // ignoring a question).
     CHECK(result_of(lua, "empty") == "Nothing nearby.");
+
+    // A refused move is the one case the game itself never reports: it assumes
+    // the wall was seen. Without this, a direction key produces nothing at all
+    // and cannot be told apart from a key that never arrived.
+    CHECK(result_of(lua, "blocked") == "wall, blocked.");
+    CHECK(result_of(lua, "blocked_unchanged") == "wall, blocked.");
+
+    // A step onto different ground names it; a step across the same floor says
+    // nothing, or every step would bury the blocked case.
+    CHECK(result_of(lua, "changed") == "grass.");
+    CHECK(result_of(lua, "unchanged").empty());
 }
 
 // The perception queries are the layer's eyes. A binding that is missing or
@@ -194,6 +205,7 @@ TEST_CASE("bn_access_scripts_parse", "[lua]") {
              "data/mods/bn_access/lib/text.lua",
              "data/mods/bn_access/lib/messages.lua",
              "data/mods/bn_access/lib/bearing.lua",
+             "data/mods/bn_access/lib/movement.lua",
              "data/mods/bn_access/lib/surroundings.lua",
              "data/mods/bn_access/lib/prompts.lua",
          }) {
