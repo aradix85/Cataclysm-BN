@@ -122,25 +122,11 @@ local function entry_line(state)
   return table.concat(parts, ", ") .. "."
 end
 
---- Whether the selection jumped from one end of the list to the other.
----
---- Stepping one past the last entry lands on the first, and one before the
---- first lands on the last (src/ui.cpp, uilist::scrollby). Without a word there
---- the list simply appears to go on forever. A changed count means the filter
---- moved the selection rather than the player, so it is not a wrap.
----
---- With two entries nothing is claimed, because every move in such a list is
---- between its two ends: stepping down from the first onto the last and wrapping
---- up onto it are the same two numbers. The position already says where the
---- cursor landed, and a wrap announced when none happened sends a player back
---- up a list they were walking down.
-local function wrap_word(state, previous)
-  if state.count ~= previous.count or state.count < 3 then return nil end
-  if not state.cursor or not previous.cursor then return nil end
-  if previous.cursor == state.count and state.cursor == 1 then return "Back to the top." end
-  if previous.cursor == 1 and state.cursor == state.count then return "Back to the bottom." end
-  return nil
-end
+--- Nothing is said where the list wraps. Stepping one past the last entry lands
+--- on the first (src/ui.cpp, uilist::scrollby), and the position spoken with
+--- that entry -- "1 of 16" -- already says where the cursor landed. A word for
+--- it is a second sentence about a move the player made deliberately and can
+--- hear the result of.
 
 --- What to say about this firing, given the one before it.
 ---
@@ -162,8 +148,6 @@ menus.utterances = function(state, previous)
     -- The filter moved. How much is left is the answer to typing, and it also
     -- says that a search found nothing without the player having to walk it.
     if state.count ~= previous.count then out[#out + 1] = count_sentence(state.count) end
-    local wrapped = wrap_word(state, previous)
-    if wrapped then out[#out + 1] = wrapped end
 
     local line = entry_line(state)
     if line and line ~= entry_line(previous) then out[#out + 1] = line end

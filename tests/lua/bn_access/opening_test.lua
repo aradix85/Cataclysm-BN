@@ -58,13 +58,13 @@ check.equal(
 
 check.equal(
   say(screen("MOTD", 1, nil), screen("Quit", 8, nil)),
-  "Back to the top. / MOTD, 1 of 8.",
-  "Stepping past the last heading lands on the first, and says so rather than appearing to go on forever"
+  "MOTD, 1 of 8.",
+  "Stepping past the last heading lands on the first, and the position it reads out is the whole answer"
 )
 
 check.equal(
   say(screen("New Game", 2, "Custom Character", 1, 7), screen("New Game", 2, "Defence mode", 7, 7)),
-  "Back to the top. / Custom Character, 1 of 7.",
+  "Custom Character, 1 of 7.",
   "The list under a heading wraps the same way and is answered the same way"
 )
 

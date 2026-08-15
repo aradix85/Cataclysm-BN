@@ -48,20 +48,20 @@ check.equal(
 
 check.equal(
   say(main_menu(1, "Options"), main_menu(16, "Reload Lua")),
-  "Back to the top. / Options, 1 of 16.",
-  "Stepping past the last entry lands on the first, and says so rather than appearing to go on forever"
+  "Options, 1 of 16.",
+  "Stepping past the last entry lands on the first, and the position it reads out is the whole answer"
 )
 
 check.equal(
   say(main_menu(16, "Reload Lua"), main_menu(1, "Options")),
-  "Back to the bottom. / Reload Lua, 16 of 16.",
-  "Stepping before the first entry lands on the last, and says so"
+  "Reload Lua, 16 of 16.",
+  "And stepping before the first lands on the last, with nothing said about the jump"
 )
 
 check.equal(
   say(main_menu(1, "Options", 4), main_menu(16, "Reload Lua")),
   "4 entries. / Options, 1 of 4.",
-  "Reaching the first entry because the filter shrank the list is not a wrap and is not called one"
+  "A filter that shrank the list says how much is left, and then where the cursor now sits"
 )
 
 -- The game's own action menu, the one that lists every verb the player has and
@@ -137,7 +137,7 @@ check.equal(
   "Closing a menu and opening the same one again says everything again"
 )
 
--- A list of two, where wrapping and stepping are the same two numbers.
+-- A list of two, where the cursor is always at one end or the other.
 local pair_menu = function(cursor, name)
   return menus.state({
     category = "UILIST",
@@ -152,7 +152,5 @@ end
 check.equal(
   say(pair_menu(2, "No"), pair_menu(1, "Yes")),
   "No, 2 of 2.",
-  "In a list of two, a step down is not called a wrap: the same two numbers describe both moves"
+  "A two-entry list reads like any other: the entry and where it sits, and nothing about its ends"
 )
-
-check.equal(say(pair_menu(1, "Yes"), pair_menu(2, "No")), "Yes, 1 of 2.", "And neither is the step back up")
