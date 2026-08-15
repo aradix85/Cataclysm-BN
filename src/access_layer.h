@@ -14,9 +14,11 @@ struct lua_state;
  * sight meets first and last. It would also sit in the mod list, where the one
  * thing that must never be switched off could be switched off.
  *
- * It stays Lua, because a Lua change compiles nothing and the game reloads it
- * without restarting, which is what makes the wording answerable at the
- * keyboard rather than at a build.
+ * It stays Lua, because a Lua change compiles nothing, which is what makes the
+ * wording answerable at the keyboard rather than at a build. It does cost a
+ * restart: `reload_lua_code()` reloads the mod scripts only, and `game.add_hook`
+ * appends without replacing, so loading this file a second time into a live
+ * state would register every hook twice and say everything twice.
  *
  * The layer is loaded into whichever state is alive: the one built here at
  * program start, and again into each world's state as it is built. Hooks then
