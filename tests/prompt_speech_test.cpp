@@ -182,6 +182,55 @@ TEST_CASE("bn_access_perception_bindings", "[lua]") {
     CHECK(test_data["describe_specials"].get<int>() >= 0);
 }
 
+// The error report holds the keyboard and says nothing on its own, and it is
+// also where a fault in this layer surfaces. So the wording has to carry what
+// happened and the way out in one firing: that screen reads raw input and
+// accepts only space, i and c, which leaves no key for asking again.
+TEST_CASE("bn_access_error_utterances", "[lua]") {
+    sol::state lua = make_lua_state();
+    sol::table test_data = lua.create_table();
+    lua.globals()["test_data"] = test_data;
+
+    run_lua_script(lua, "tests/lua/error_speech_test.lua");
+
+    // Both keys are named every time. A report that keeps coming back is what
+    // ends a session, and `i` is the only thing that stops it.
+    const std::string way_out = " / Space to continue, or I to ignore this error.";
+
+    // Name first (P2): which screen is up, before why it is up.
+    CHECK(result_of(lua, "plain") == "Error. Attempted to load unknown item id." + way_out);
+
+    // A Lua fault arrives with a traceback behind it. The first line is what
+    // happened; the rest is where, which the log keeps and which nobody can act
+    // on by ear.
+    CHECK(
+        result_of(lua, "lua_fault")
+        == R"(Error. [string "main.lua"]:41: attempt to index a nil value (field 'to').)" + way_out);
+
+    // The game shows the same report a second time once it repeats too often,
+    // and a fault in a per-turn hook repeats every turn. Reading it out again is
+    // F5.
+    CHECK(result_of(lua, "repeated") == "Same error again." + way_out);
+    CHECK(result_of(lua, "different") == "Error. Monster spawn failed." + way_out);
+
+    // Silence is information (P5) only while it means nothing is there. This
+    // screen is there whatever it has to say, so a report with nothing speakable
+    // in it still names itself -- otherwise it is the dead keyboard again.
+    CHECK(result_of(lua, "empty") == "Error." + way_out);
+    CHECK(result_of(lua, "decoration") == "Error." + way_out);
+
+    // Markup is drawn, not said, and reaches a report the same way it reaches a
+    // message.
+    CHECK(result_of(lua, "markup") == "Error. Save file is corrupt." + way_out);
+
+    // Bounded (F5), cut at a word boundary so the last thing heard is a whole
+    // word, and saying that it was cut, because the player cannot ask for the
+    // rest here and the log has it.
+    CHECK_THAT(result_of(lua, "long"), Catch::EndsWith("The rest is in the log."));
+    CHECK_THAT(result_of(lua, "long"), Catch::StartsWith("Error. wandering herd placement"));
+    CHECK(test_data["long_length"].get<int>() < 240);
+}
+
 // A syntax error anywhere in the mod's own scripts is invisible until the game
 // loads it: the mod then registers nothing, announces nothing, and looks
 // exactly like a broken build to a player who cannot see the error. Parsing
@@ -199,6 +248,7 @@ TEST_CASE("bn_access_scripts_parse", "[lua]") {
              "data/mods/bn_access/lib/movement.lua",
              "data/mods/bn_access/lib/surroundings.lua",
              "data/mods/bn_access/lib/prompts.lua",
+             "data/mods/bn_access/lib/errors.lua",
          }) {
         INFO(script);
         sol::load_result loaded = lua.load_file(script);

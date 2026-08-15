@@ -18,6 +18,7 @@
 -- told what happened is not the same as being able to ask what is there.
 
 local speech = require("./lib/speech")
+local errors = require("./lib/errors")
 local prompts = require("./lib/prompts")
 local messages = require("./lib/messages")
 local movement = require("./lib/movement")
@@ -33,6 +34,25 @@ mod.speech = speech
 -- one when the world is ready turn that silence into a bracket: this is the
 -- start of the wait, "ready" is the end of it, and neither is an error.
 speech.say("Loading.")
+
+-- The game's own error report, first of everything, because it is how a fault
+-- anywhere else -- in the game, in this file, in a hook below -- reaches the
+-- player. Registering it here means the rest of this file is already covered
+-- while it is still being read.
+--
+-- The report before this one, so a fault that repeats every turn does not read
+-- itself out every turn.
+local last_error = nil
+
+game.add_hook("on_debugmsg", {
+  priority = 100,
+  fn = function(params)
+    for _, line in ipairs(errors.utterances(params.text, last_error)) do
+      speech.say(line)
+    end
+    last_error = params.text
+  end,
+})
 
 -- How far the overview looks. Creatures are limited by what the character can
 -- actually see; the terrain scan is a square of this radius, so it is also the
