@@ -48,15 +48,26 @@ auto hotkey_of( const std::string &drawn ) -> std::string
     return keys.empty() ? std::string() : keys.front();
 }
 
-// The worlds, each with how many characters live in it, written the way
-// `display_sub_menu` writes them.
-auto world_items() -> std::vector<std::string>
+// One line of the list under a heading, as the game draws it.
+//
+// `saves` is how many characters live in a world, which the screen draws in
+// brackets after its name -- "Boston (2)". It comes over as a number of its own
+// rather than inside the name, because a nought there is the difference between
+// a world that can be entered and one that answers Return with a refusal, and
+// because two numbers in one breath -- "Boston 2, 1 of 3" -- read as related
+// when they are not. Below zero for anything that is not a world.
+struct menu_entry {
+    std::string drawn;
+    int saves = -1;
+};
+
+// The worlds, each with how many characters live in it.
+auto world_items() -> std::vector<menu_entry>
 {
-    std::vector<std::string> out;
+    std::vector<menu_entry> out;
     for( const std::string &name : world_generator->all_worldnames() ) {
         const WORLDINFO *world = world_generator->get_world( name );
-        out.push_back( string_format( "%s (%d)", name,
-                                      world ? static_cast<int>( world->world_saves.size() ) : 0 ) );
+        out.push_back( { name, world ? static_cast<int>( world->world_saves.size() ) : 0 } );
     }
     return out;
 }
@@ -64,20 +75,26 @@ auto world_items() -> std::vector<std::string>
 // The list drawn under the selected heading, as the game writes it and with its
 // markup intact, or nothing where the heading carries no list.
 auto entries_under( const int heading, const std::vector<std::string> &new_game_items,
-                    const std::vector<std::string> &settings_items ) -> std::vector<std::string>
+                    const std::vector<std::string> &settings_items ) -> std::vector<menu_entry>
 {
-    std::vector<std::string> out;
+    std::vector<menu_entry> out;
     switch( heading ) {
         case opt_new_char:
-            return new_game_items;
-        case opt_settings:
-            return settings_items;
+        case opt_settings: {
+            const std::vector<std::string> &items =
+                heading == opt_new_char ? new_game_items : settings_items;
+            out.reserve( items.size() );
+            for( const std::string &item : items ) {
+                out.push_back( { item, -1 } );
+            }
+            return out;
+        }
         case opt_load_char:
             return world_items();
         case opt_world:
             // The world screen offers making one before listing the ones there are.
             out = world_items();
-            out.insert( out.begin(), _( "Create World" ) );
+            out.insert( out.begin(), { _( "Create World" ), -1 } );
             return out;
         default:
             return out;
@@ -99,7 +116,7 @@ void fire_on_main_menu( const std::vector<std::string> &headings, const int head
         return;
     }
 
-    const std::vector<std::string> entries =
+    const std::vector<menu_entry> entries =
         entries_under( heading_sel, new_game_items, settings_items );
 
     run_hooks( "on_main_menu", [&]( sol::table & params ) {
@@ -117,11 +134,14 @@ void fire_on_main_menu( const std::vector<std::string> &headings, const int head
             return;
         }
 
-        sol::table entry = lua.create_table( 0, 4 );
-        entry["text"] = spoken( entries[entry_sel] );
-        entry["key"] = hotkey_of( entries[entry_sel] );
+        sol::table entry = lua.create_table( 0, 5 );
+        entry["text"] = spoken( entries[entry_sel].drawn );
+        entry["key"] = hotkey_of( entries[entry_sel].drawn );
         entry["cursor"] = entry_sel + 1;
         entry["count"] = static_cast<int>( entries.size() );
+        if( entries[entry_sel].saves >= 0 ) {
+            entry["saves"] = entries[entry_sel].saves;
+        }
         params["entry"] = entry;
     } );
 }

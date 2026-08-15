@@ -27,6 +27,7 @@ struct seen_screen {
     bool has_entry = false;
     std::string entry_text;
     std::string entry_key;
+    bool has_saves = false;
     int entry_cursor = 0;
     int entry_count = 0;
 };
@@ -50,6 +51,7 @@ void record(const std::shared_ptr<seen_screen>& out, const sol::table& params) {
     if (!entry) { return; }
     out->entry_text = (*entry)["text"].get<std::string>();
     out->entry_key = (*entry)["key"].get<std::string>();
+    out->has_saves = (*entry)["saves"].get<sol::optional<int>>().has_value();
     out->entry_cursor = (*entry)["cursor"].get<int>();
     out->entry_count = (*entry)["count"].get<int>();
 }
@@ -131,11 +133,15 @@ TEST_CASE("lua_hook_on_main_menu_says_the_name_and_not_its_hotkey_markup", "[lua
     CHECK(seen->heading_text == "Help");
     CHECK(seen->heading_key == "e");
 
-    // A name the game marks no key on keeps its name and gets no key. World
-    // names are the real case: they are reached with the arrow keys only.
-    cata::fire_on_main_menu(headings(), 4, new_game_items(), {"Boston (2)"}, 0);
-    CHECK(seen->entry_text == "Boston (2)");
+    // A name the game marks no key on keeps its name and gets no key.
+    cata::fire_on_main_menu(headings(), 4, new_game_items(), {"Convert to V2 Save Format"}, 0);
+    CHECK(seen->entry_text == "Convert to V2 Save Format");
     CHECK(seen->entry_key.empty());
+
+    // How many characters live in a world belongs to a world and to nothing
+    // else, so nothing else carries the field at all -- a nought here would read
+    // as an empty list rather than as "this entry is not a world".
+    CHECK_FALSE(seen->has_saves);
 }
 
 // Help and Quit carry no list at all, and MOTD and Credits show a page of text

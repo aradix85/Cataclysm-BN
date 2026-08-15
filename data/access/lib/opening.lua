@@ -34,6 +34,7 @@ local function level(l)
   return {
     text = l.text or "",
     key = (l.key or ""):lower(),
+    saves = l.saves,
     cursor = l.cursor,
     count = l.count or 0,
   }
@@ -72,6 +73,22 @@ local function headings_of(state)
   })
 end
 
+--- What is worth knowing about an entry besides its name.
+---
+--- A world carries how many characters live in it, and the game draws that as a
+--- bracketed number after the name. It is said in words instead: nought there is
+--- not decoration but the difference between a world that can be entered and one
+--- that answers Return with "no characters to load", and Load is where a player
+--- is looking for exactly that.
+---
+--- Everything else carries the letter that jumps to it, and never both.
+local function aside(entry)
+  if entry.saves == 0 then return "no characters" end
+  if entry.saves == 1 then return "1 character" end
+  if entry.saves then return entry.saves .. " characters" end
+  return entry.key
+end
+
 --- The list under the selected heading, read as a list of its own and named
 --- after the heading it hangs from.
 local function entries_of(state)
@@ -81,7 +98,7 @@ local function entries_of(state)
     text = state.heading.text,
     count = state.entry.count,
     cursor = state.entry.cursor,
-    entry = { text = state.entry.text, column = state.entry.key, enabled = true },
+    entry = { text = state.entry.text, column = aside(state.entry), enabled = true },
   })
 end
 

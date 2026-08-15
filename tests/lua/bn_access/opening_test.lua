@@ -27,29 +27,38 @@ local function screen(heading, key, at, entry, entry_key, in_list, of_list)
   })
 end
 
-local load_at = function(entry, in_list, of_list) return screen("Load", "a", 3, entry, "", in_list, of_list) end
+-- A world under Load, with how many characters live in it. Worlds carry no
+-- letter of their own; they are reached with the arrow keys.
+local load_at = function(entry, saves, in_list, of_list)
+  local state = opening.state({
+    category = "MAIN_MENU",
+    heading = { text = "Load", key = "a", cursor = 3, count = 8 },
+    entry = { text = entry, key = "", saves = saves, cursor = in_list, count = of_list },
+  })
+  return state
+end
 local new_game_at = function(entry, key, in_list) return screen("New Game", "n", 2, entry, key, in_list, 7) end
 
 check.equal(
-  say(load_at("Boston (2)", 1, 2), nil),
-  "Main menu, 8 entries. / Load, submenu, a, 3 of 8. / Boston (2), 1 of 2.",
+  say(load_at("Boston", 2, 1, 3), nil),
+  "Main menu, 8 entries. / Load, submenu, a, 3 of 8. / Boston, 2 characters, 1 of 3.",
   "Arriving says the screen, then the heading with its key and that a list hangs under it, then what is selected there"
 )
 
 check.equal(
-  say(load_at("Boston (2)", 1, 2), load_at("Boston (2)", 1, 2)),
+  say(load_at("Boston", 2, 1, 3), load_at("Boston", 2, 1, 3)),
   "",
   "A redraw that changed nothing says nothing, so the screen cannot talk over itself"
 )
 
 check.equal(
-  say(load_at("Springfield (1)", 2, 2), load_at("Boston (2)", 1, 2)),
-  "Springfield (1), 2 of 2.",
+  say(load_at("Springfield", 1, 2, 3), load_at("Boston", 2, 1, 3)),
+  "Springfield, 1 character, 2 of 3.",
   "Moving down the list under a heading speaks that entry alone -- not the heading, and not submenu again"
 )
 
 check.equal(
-  say(new_game_at("Custom Character", "u", 1), load_at("Boston (2)", 1, 2)),
+  say(new_game_at("Custom Character", "u", 1), load_at("Boston", 2, 1, 3)),
   "New Game, submenu, n, 2 of 8. / Custom Character, u, 1 of 7.",
   "Moving along the top names the heading and then the entry the cursor already sits on under it"
 )
@@ -79,8 +88,8 @@ check.equal(
 )
 
 check.equal(
-  say(load_at("Boston (2)", 1, 2), screen("Load", "a", 3)),
-  "Load, submenu, a, 3 of 8. / Boston (2), 1 of 2.",
+  say(load_at("Boston", 2, 1, 3), screen("Load", "a", 3)),
+  "Load, submenu, a, 3 of 8. / Boston, 2 characters, 1 of 3.",
   "A heading whose list was empty and now is not says so, since the word submenu is what tells them apart"
 )
 
@@ -100,4 +109,19 @@ check.equal(
   say(screen("New Game", "N", 2, "Custom Character", "U", 1, 7), nil),
   "Main menu, 8 entries. / New Game, submenu, n, 2 of 8. / Custom Character, u, 1 of 7.",
   "A key the game wrote as a capital is spoken as a plain letter, at both levels"
+)
+
+-- A world nobody lives in yet: made from the World screen, or left behind when a
+-- character died and the world was kept. Load lists it like any other, and
+-- choosing it answers with a refusal, so the nought is the useful part.
+check.equal(
+  say(load_at("Ashfield", 0, 3, 3), load_at("Springfield", 1, 2, 3)),
+  "Ashfield, no characters, 3 of 3.",
+  "A world with nothing in it says so, rather than being found out by pressing Return"
+)
+
+check.equal(
+  say(load_at("Boston", 2, 1, 3), load_at("Boston", 3, 1, 3)),
+  "Boston, 2 characters, 1 of 3.",
+  "The count belongs to the world and is spoken when it reads differently, like any other part of an entry"
 )
