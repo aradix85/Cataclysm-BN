@@ -136,3 +136,23 @@ check.equal(
   "MAIN MENU, 16 entries. / Options, 1 of 16.",
   "Closing a menu and opening the same one again says everything again"
 )
+
+-- A list of two, where wrapping and stepping are the same two numbers.
+local pair_menu = function(cursor, name)
+  return menus.state({
+    category = "UILIST",
+    title = "Really quit?",
+    text = "",
+    count = 2,
+    cursor = cursor,
+    entry = { text = name, column = "", enabled = true },
+  })
+end
+
+check.equal(
+  say(pair_menu(2, "No"), pair_menu(1, "Yes")),
+  "No, 2 of 2.",
+  "In a list of two, a step down is not called a wrap: the same two numbers describe both moves"
+)
+
+check.equal(say(pair_menu(1, "Yes"), pair_menu(2, "No")), "Yes, 1 of 2.", "And neither is the step back up")

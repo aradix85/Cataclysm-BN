@@ -128,8 +128,14 @@ end
 --- first lands on the last (src/ui.cpp, uilist::scrollby). Without a word there
 --- the list simply appears to go on forever. A changed count means the filter
 --- moved the selection rather than the player, so it is not a wrap.
+---
+--- With two entries nothing is claimed, because every move in such a list is
+--- between its two ends: stepping down from the first onto the last and wrapping
+--- up onto it are the same two numbers. The position already says where the
+--- cursor landed, and a wrap announced when none happened sends a player back
+--- up a list they were walking down.
 local function wrap_word(state, previous)
-  if state.count ~= previous.count or state.count < 2 then return nil end
+  if state.count ~= previous.count or state.count < 3 then return nil end
   if not state.cursor or not previous.cursor then return nil end
   if previous.cursor == state.count and state.cursor == 1 then return "Back to the top." end
   if previous.cursor == 1 and state.cursor == state.count then return "Back to the bottom." end
