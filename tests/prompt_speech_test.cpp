@@ -249,6 +249,7 @@ TEST_CASE("bn_access_scripts_parse", "[lua]") {
              "data/access/lib/surroundings.lua",
              "data/access/lib/prompts.lua",
              "data/access/lib/menus.lua",
+             "data/access/lib/opening.lua",
              "data/access/lib/errors.lua",
          }) {
         INFO(script);

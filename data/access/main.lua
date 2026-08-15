@@ -18,7 +18,8 @@
 -- The message log speaks because that is the game telling the player what just
 -- happened to them. Menus speak because a menu holds the keyboard the same way
 -- a prompt does, and because the game's own action menu lists every verb in the
--- game, including this layer's own commands.
+-- game, including this layer's own commands. The screen the game opens on
+-- speaks because it is the only way into a world and the way back out of one.
 --
 -- The layer owns one key: the question the game cannot answer by itself. Being
 -- told what happened is not the same as being able to ask what is there.
@@ -27,6 +28,7 @@ local speech = require("./lib/speech")
 local errors = require("./lib/errors")
 local prompts = require("./lib/prompts")
 local menus = require("./lib/menus")
+local opening = require("./lib/opening")
 local messages = require("./lib/messages")
 local movement = require("./lib/movement")
 local surroundings = require("./lib/surroundings")
@@ -38,8 +40,12 @@ local text = require("./lib/text")
 --
 -- The two lives differ in one way only. Loaded before a world, there is nothing
 -- loading and nothing to say about a world, and the one thing worth knowing is
--- that the layer is there at all -- which on the opening screen is also the only
--- evidence a player without sight can have of it.
+-- that the layer is there at all -- said before the opening screen has drawn
+-- itself, so that a screen which then names itself is confirmation rather than
+-- the first sign of anything.
+-- Set by src/access_layer.cpp before this file runs, so the analyzer cannot see
+-- where it comes from.
+---@diagnostic disable-next-line: undefined-global
 local at_boot = access_is_boot == true
 
 if at_boot then
@@ -114,7 +120,15 @@ game.add_hook("on_add_msg", {
 -- The prompt that is currently on screen, as prompts.state() normalised it.
 -- It is what makes "has anything changed" answerable, since the hook fires
 -- again after every keypress the prompt did not accept.
+--
+-- The menu and the opening screen are kept the same way, and the three are
+-- exclusive: whichever of them fires holds the keyboard, so the other two are
+-- gone and are forgotten here. Forgetting is what lets the same screen be met a
+-- second time and still speak -- a screen is recognised by what it says it is,
+-- so returning to one is otherwise indistinguishable from never having left it.
 local open_prompt = nil
+local open_menu = nil
+local open_screen = nil
 
 -- A blocking prompt speaks itself. By the time this fires the game has already
 -- taken the keyboard, so an announcement is not an interruption, it is the only
@@ -127,14 +141,15 @@ game.add_hook("on_query_popup", {
       speech.say(line)
     end
     open_prompt = state
+    open_menu = nil
+    open_screen = nil
   end,
 })
 
 -- The menu that is on screen, as menus.state() normalised it, and the same
 -- answer to the same question: the hook fires again after every keypress, so
 -- what changed is only knowable by keeping what came before.
-local open_menu = nil
-
+--
 -- Every uilist in the game arrives here: the menu ESC opens, the action menu on
 -- RETURN, the item action and examine menus, the vehicle controls. None of them
 -- is followable by any other means -- upstream's cursor support was never
@@ -147,6 +162,27 @@ game.add_hook("on_uilist", {
       speech.say(line)
     end
     open_menu = state
+    open_prompt = nil
+    open_screen = nil
+  end,
+})
+
+-- The screen the game opens on, which is not a uilist and needs a firing point
+-- of its own. It is the first thing a player meets, the only way into a world,
+-- and the screen they are returned to when they leave one.
+--
+-- Two lists at once, and only what moved is spoken; the wording lives in
+-- lib/opening.lua.
+game.add_hook("on_main_menu", {
+  priority = 100,
+  fn = function(params)
+    local state = opening.state(params)
+    for _, line in ipairs(opening.utterances(state, open_screen)) do
+      speech.say(line)
+    end
+    open_screen = state
+    open_prompt = nil
+    open_menu = nil
   end,
 })
 
@@ -236,16 +272,15 @@ local function collect()
   return { enemies = enemies, others = others, landmarks = landmarks }
 end
 
--- An action in the default mode context can only arrive while no popup and no
--- menu holds the keyboard, so both are gone. Forgetting them here is what lets
--- the same question, and the same menu, be met a second time and still speak:
--- a menu is recognised by what it says it is, so reopening one after closing it
--- is otherwise indistinguishable from never having left it.
+-- An action in the default mode context can only arrive while no popup, no menu
+-- and no opening screen holds the keyboard, so all three are gone and are
+-- forgotten here, for the reason given where they are declared.
 game.add_hook("on_action", {
   priority = 100,
   fn = function(params)
     open_prompt = nil
     open_menu = nil
+    open_screen = nil
 
     if params.action == "bn_access_surroundings" then
       for _, line in ipairs(surroundings.overview(collect())) do
