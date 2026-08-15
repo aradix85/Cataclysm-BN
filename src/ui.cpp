@@ -19,6 +19,7 @@
 #include "player.h"
 #include "string_input_popup.h"
 #include "string_utils.h"
+#include "ui_hook.h"
 #include "ui_manager.h"
 
 #if defined(__ANDROID__)
@@ -1068,6 +1069,8 @@ void uilist::query( bool loop, int timeout )
 #endif
 
     do {
+        cata::fire_on_uilist( input_category, title, text, entries, fentries, fselected );
+
         ret_act = ctxt.handle_input( timeout );
         const auto event = ctxt.get_raw_input();
         keypress = event.get_first_input();
