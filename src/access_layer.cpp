@@ -27,7 +27,15 @@ auto main_script() -> std::string
     return PATH_INFO::datadir() + "access/main.lua";
 }
 
-std::unique_ptr<lua_state, lua_state_deleter> boot;
+// Never freed, deliberately. The layer has to speak until the process is gone,
+// so this state outlives the game's own teardown -- and a destructor running
+// after that runs at CRT shutdown, against containers in other translation
+// units whose destruction order the language does not define. That is a crash
+// decided by link order rather than by anything here: silent, because the
+// player has already quit, and able to disappear on the next build without a
+// line changing. Owning it as a raw pointer removes the question. The
+// operating system reclaims the memory.
+lua_state *boot = nullptr;
 
 } // namespace
 
@@ -36,7 +44,7 @@ void load_into( lua_state &state )
     // Which of the two lives this is. The layer says different things: before a
     // world there is nothing loading and nothing to report about one, and the
     // only useful word is that the layer itself is there.
-    state.lua.globals()["access_is_boot"] = ( &state == boot.get() );
+    state.lua.globals()["access_is_boot"] = ( &state == boot );
 
     try {
         run_lua_script( state.lua, main_script() );
@@ -54,7 +62,9 @@ void start()
         return;
     }
 
-    boot = make_wrapped_state();
+    // release(), not the unique_ptr itself: the state is built through the
+    // game's own factory and then handed over to nobody, for the reason above.
+    boot = make_wrapped_state().release();
     // No mods, but the tables the layer expects still have to exist: this state
     // never goes through the mod system that would otherwise build them.
     init_global_state_tables( *boot, std::vector<mod_id> {} );
@@ -65,7 +75,7 @@ void start()
 
 auto boot_state() -> lua_state *
 {
-    return boot.get();
+    return boot;
 }
 
 } // namespace access
