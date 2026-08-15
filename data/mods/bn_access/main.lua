@@ -12,7 +12,9 @@
 -- Blocking prompts speak because a prompt accepts its own two or four keys and
 -- swallows every other one, so a silent prompt makes every command unreachable.
 -- The message log speaks because that is the game telling the player what just
--- happened to them.
+-- happened to them. Menus speak because a menu holds the keyboard the same way
+-- a prompt does, and because the game's own action menu lists every verb in the
+-- game, including this mod's own commands.
 --
 -- The mod owns one key: the question the game cannot answer by itself. Being
 -- told what happened is not the same as being able to ask what is there.
@@ -20,6 +22,7 @@
 local speech = require("./lib/speech")
 local errors = require("./lib/errors")
 local prompts = require("./lib/prompts")
+local menus = require("./lib/menus")
 local messages = require("./lib/messages")
 local movement = require("./lib/movement")
 local surroundings = require("./lib/surroundings")
@@ -113,6 +116,26 @@ game.add_hook("on_query_popup", {
   end,
 })
 
+-- The menu that is on screen, as menus.state() normalised it, and the same
+-- answer to the same question: the hook fires again after every keypress, so
+-- what changed is only knowable by keeping what came before.
+local open_menu = nil
+
+-- Every uilist in the game arrives here: the menu ESC opens, the action menu on
+-- RETURN, the item action and examine menus, the vehicle controls. None of them
+-- is followable by any other means -- upstream's cursor support was never
+-- ported into uilist -- so this hook is the only way any of them is playable.
+game.add_hook("on_uilist", {
+  priority = 100,
+  fn = function(params)
+    local state = menus.state(params)
+    for _, line in ipairs(menus.utterances(state, open_menu)) do
+      speech.say(line)
+    end
+    open_menu = state
+  end,
+})
+
 -- The name of what is on a square: furniture if there is any, since a stove on
 -- a floor is a stove, and the terrain otherwise.
 local function square_name(pos)
@@ -199,13 +222,16 @@ local function collect()
   return { enemies = enemies, others = others, landmarks = landmarks }
 end
 
--- An action in the default mode context can only arrive while no popup holds
--- the keyboard, so the prompt that was open is gone. Forgetting it here is what
--- lets the same question be asked, and answered, twice.
+-- An action in the default mode context can only arrive while no popup and no
+-- menu holds the keyboard, so both are gone. Forgetting them here is what lets
+-- the same question, and the same menu, be met a second time and still speak:
+-- a menu is recognised by what it says it is, so reopening one after closing it
+-- is otherwise indistinguishable from never having left it.
 game.add_hook("on_action", {
   priority = 100,
   fn = function(params)
     open_prompt = nil
+    open_menu = nil
 
     if params.action == "bn_access_surroundings" then
       for _, line in ipairs(surroundings.overview(collect())) do

@@ -248,6 +248,7 @@ TEST_CASE("bn_access_scripts_parse", "[lua]") {
              "data/mods/bn_access/lib/movement.lua",
              "data/mods/bn_access/lib/surroundings.lua",
              "data/mods/bn_access/lib/prompts.lua",
+             "data/mods/bn_access/lib/menus.lua",
              "data/mods/bn_access/lib/errors.lua",
          }) {
         INFO(script);
