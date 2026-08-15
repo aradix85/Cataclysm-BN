@@ -16,75 +16,88 @@ local opening = require("../../../data/access/lib/opening")
 --- count of them are pinned by one comparison.
 local function say(state, previous) return table.concat(opening.utterances(state, previous), " / ") end
 
--- The screen as the game builds it: eight headings along the top, and under
--- Load the worlds with the number of characters in each.
-local function screen(heading, at, entry, in_list, of_list)
+-- The screen as the game builds it: eight headings along the top, each with the
+-- letter that jumps straight to it, and under Load the worlds, which carry no
+-- letter because they are reached with the arrow keys.
+local function screen(heading, key, at, entry, entry_key, in_list, of_list)
   return opening.state({
     category = "MAIN_MENU",
-    heading = { text = heading, cursor = at, count = 8 },
-    entry = entry and { text = entry, cursor = in_list, count = of_list } or nil,
+    heading = { text = heading, key = key, cursor = at, count = 8 },
+    entry = entry and { text = entry, key = entry_key, cursor = in_list, count = of_list } or nil,
   })
 end
 
+local load_at = function(entry, in_list, of_list) return screen("Load", "a", 3, entry, "", in_list, of_list) end
+local new_game_at = function(entry, key, in_list) return screen("New Game", "n", 2, entry, key, in_list, 7) end
+
 check.equal(
-  say(screen("Load", 3, "Boston (2)", 1, 2), nil),
-  "Main menu, 8 entries. / Load, 3 of 8. / Boston (2), 1 of 2.",
-  "Arriving says what the screen is, which heading the cursor sits on, and what is selected under it"
+  say(load_at("Boston (2)", 1, 2), nil),
+  "Main menu, 8 entries. / Load, submenu, a, 3 of 8. / Boston (2), 1 of 2.",
+  "Arriving says the screen, then the heading with its key and that a list hangs under it, then what is selected there"
 )
 
 check.equal(
-  say(screen("Load", 3, "Boston (2)", 1, 2), screen("Load", 3, "Boston (2)", 1, 2)),
+  say(load_at("Boston (2)", 1, 2), load_at("Boston (2)", 1, 2)),
   "",
   "A redraw that changed nothing says nothing, so the screen cannot talk over itself"
 )
 
 check.equal(
-  say(screen("Load", 3, "Springfield (1)", 2, 2), screen("Load", 3, "Boston (2)", 1, 2)),
+  say(load_at("Springfield (1)", 2, 2), load_at("Boston (2)", 1, 2)),
   "Springfield (1), 2 of 2.",
-  "Moving down the list under a heading speaks that entry alone, never the heading again"
+  "Moving down the list under a heading speaks that entry alone -- not the heading, and not submenu again"
 )
 
 check.equal(
-  say(screen("New Game", 2, "Custom Character", 1, 7), screen("Load", 3, "Boston (2)", 1, 2)),
-  "New Game, 2 of 8. / Custom Character, 1 of 7.",
-  "Moving along the top names the heading and then the first entry under it, and names neither twice"
+  say(new_game_at("Custom Character", "u", 1), load_at("Boston (2)", 1, 2)),
+  "New Game, submenu, n, 2 of 8. / Custom Character, u, 1 of 7.",
+  "Moving along the top names the heading and then the entry the cursor already sits on under it"
 )
 
 check.equal(
-  say(screen("Quit", 8, nil), screen("Credits", 7, nil)),
-  "Quit, 8 of 8.",
-  "A heading with no list under it is complete on its own, and does not wait for a second sentence"
+  say(screen("Quit", "q", 8), screen("Credits", "c", 7)),
+  "Quit, q, 8 of 8.",
+  "A heading with no list under it is not called a submenu, which is how silence after it reads as complete"
 )
 
 check.equal(
-  say(screen("MOTD", 1, nil), screen("Quit", 8, nil)),
-  "MOTD, 1 of 8.",
+  say(screen("MOTD", "m", 1), screen("Quit", "q", 8)),
+  "MOTD, m, 1 of 8.",
   "Stepping past the last heading lands on the first, and the position it reads out is the whole answer"
 )
 
 check.equal(
-  say(screen("New Game", 2, "Custom Character", 1, 7), screen("New Game", 2, "Defence mode", 7, 7)),
-  "Custom Character, 1 of 7.",
+  say(new_game_at("Custom Character", "u", 1), new_game_at("Defence mode", "d", 7)),
+  "Custom Character, u, 1 of 7.",
   "The list under a heading wraps the same way and is answered the same way"
 )
 
 check.equal(
-  say(screen("New Game", 2, "Custom Character", 1, 7), screen("Quit", 8, nil)),
-  "New Game, 2 of 8. / Custom Character, 1 of 7.",
+  say(new_game_at("Custom Character", "u", 1), screen("Quit", "q", 8)),
+  "New Game, submenu, n, 2 of 8. / Custom Character, u, 1 of 7.",
   "Coming from a heading that had no list is not treated as continuing one"
 )
 
 check.equal(
-  say(screen("Load", 3, "Boston (2)", 1, 2), screen("Load", 3, nil)),
-  "Boston (2), 1 of 2.",
-  "A list that was empty and now is not is entered rather than continued, so its name is not repeated"
+  say(load_at("Boston (2)", 1, 2), screen("Load", "a", 3)),
+  "Load, submenu, a, 3 of 8. / Boston (2), 1 of 2.",
+  "A heading whose list was empty and now is not says so, since the word submenu is what tells them apart"
 )
 
 -- Leaving the screen for a menu or a prompt and coming back is a fresh arrival:
 -- main.lua forgets the screen whenever something else takes the keyboard, and
 -- without that the screen a player returned to would be answered by silence.
 check.equal(
-  say(screen("New Game", 2, "Play Now!", 5, 7), nil),
-  "Main menu, 8 entries. / New Game, 2 of 8. / Play Now!, 5 of 7.",
+  say(new_game_at("Play Now!", "o", 5), nil),
+  "Main menu, 8 entries. / New Game, submenu, n, 2 of 8. / Play Now!, o, 5 of 7.",
   "Coming back to the screen says everything again, wherever the cursor was left"
+)
+
+-- The case the game highlights is not always the lower one: it is "N" for New
+-- Game and "a" for Load. Both open the heading, and a capital read out as a
+-- pitch change or the word "cap" is a difference about nothing.
+check.equal(
+  say(screen("New Game", "N", 2, "Custom Character", "U", 1, 7), nil),
+  "Main menu, 8 entries. / New Game, submenu, n, 2 of 8. / Custom Character, u, 1 of 7.",
+  "A key the game wrote as a capital is spoken as a plain letter, at both levels"
 )

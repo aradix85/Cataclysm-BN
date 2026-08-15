@@ -154,3 +154,22 @@ check.equal(
   "No, 2 of 2.",
   "A two-entry list reads like any other: the entry and where it sits, and nothing about its ends"
 )
+
+-- An entry that descends without an ellipsis to show it. A uilist marks a
+-- submenu that way and the opening screen does not mark it at all, so the flag
+-- exists for a caller that knows what the drawing does not say.
+check.equal(
+  say(
+    menus.state({
+      category = "UILIST",
+      title = "",
+      text = "MAIN MENU",
+      count = 16,
+      cursor = 2,
+      entry = { text = "Options", column = "", opens = true, enabled = true },
+    }),
+    nil
+  ),
+  "MAIN MENU, 16 entries. / Options, submenu, 2 of 16.",
+  "A caller that knows an entry descends says so, and it reads exactly as an ellipsis would"
+)

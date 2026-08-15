@@ -18,7 +18,8 @@ namespace cata
  * It reads as two lists at once. `heading` is the row along the top -- MOTD, New
  * Game, Load, World, Settings, Help, Credits, Quit -- and `entry` is the list
  * drawn under whichever of those is selected. Each arrives as
- * `{ text, cursor, count }`, with `cursor` 1-based.
+ * `{ text, key, cursor, count }`, with `cursor` 1-based and `key` the letter
+ * that jumps straight to it, empty where the game marks none.
  */
 /**
  * `entry` is left unset rather than zeroed where there is nothing under the

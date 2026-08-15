@@ -24,9 +24,19 @@ local opening = {}
 local SCREEN = "Main menu"
 
 --- One level of the screen, as the hook hands it over.
+---
+--- The key is lowered. The game highlights whichever case it wrote first, so the
+--- row reads "N" for New Game and "a" for Load, and a synthesiser answers a
+--- capital with a pitch change or the word "cap" -- a difference that means
+--- nothing here, since both cases open the same heading.
 local function level(l)
   if not l then return nil end
-  return { text = l.text or "", cursor = l.cursor, count = l.count or 0 }
+  return {
+    text = l.text or "",
+    key = (l.key or ""):lower(),
+    cursor = l.cursor,
+    count = l.count or 0,
+  }
 end
 
 --- Normalise one firing of the hook into a plain table.
@@ -41,6 +51,11 @@ end
 
 --- The row of headings, read as a list: the screen itself is the menu, and the
 --- selected heading is the entry standing in it.
+---
+--- A heading is called a submenu whenever something is selected under it, which
+--- is the one thing the row does not say for itself: on arrival the cursor is
+--- already down in that list rather than waiting above it, so a player who hears
+--- only the heading would step past its first line without knowing it was there.
 local function headings_of(state)
   return menus.state({
     category = "MAIN_MENU",
@@ -48,7 +63,12 @@ local function headings_of(state)
     text = SCREEN,
     count = state.heading.count,
     cursor = state.heading.cursor,
-    entry = { text = state.heading.text, column = "", enabled = true },
+    entry = {
+      text = state.heading.text,
+      column = state.heading.key,
+      opens = state.entry ~= nil,
+      enabled = true,
+    },
   })
 end
 
@@ -61,7 +81,7 @@ local function entries_of(state)
     text = state.heading.text,
     count = state.entry.count,
     cursor = state.entry.cursor,
-    entry = { text = state.entry.text, column = "", enabled = true },
+    entry = { text = state.entry.text, column = state.entry.key, enabled = true },
   })
 end
 

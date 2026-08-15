@@ -21,10 +21,12 @@ struct seen_screen {
     std::string category;
     bool has_heading = false;
     std::string heading_text;
+    std::string heading_key;
     int heading_cursor = 0;
     int heading_count = 0;
     bool has_entry = false;
     std::string entry_text;
+    std::string entry_key;
     int entry_cursor = 0;
     int entry_count = 0;
 };
@@ -38,6 +40,7 @@ void record(const std::shared_ptr<seen_screen>& out, const sol::table& params) {
     out->has_heading = heading.has_value();
     if (heading) {
         out->heading_text = (*heading)["text"].get<std::string>();
+        out->heading_key = (*heading)["key"].get<std::string>();
         out->heading_cursor = (*heading)["cursor"].get<int>();
         out->heading_count = (*heading)["count"].get<int>();
     }
@@ -46,6 +49,7 @@ void record(const std::shared_ptr<seen_screen>& out, const sol::table& params) {
     out->has_entry = entry.has_value();
     if (!entry) { return; }
     out->entry_text = (*entry)["text"].get<std::string>();
+    out->entry_key = (*entry)["key"].get<std::string>();
     out->entry_cursor = (*entry)["cursor"].get<int>();
     out->entry_count = (*entry)["count"].get<int>();
 }
@@ -108,14 +112,30 @@ TEST_CASE("lua_hook_on_main_menu_says_the_name_and_not_its_hotkey_markup", "[lua
     CHECK(seen->heading_text == "New Game");
     CHECK(seen->entry_text == "Custom Character");
 
+    // The key comes over beside the name rather than inside it, so a handler can
+    // say the name alone, or say both, without parsing anything back apart. It
+    // is the case the game highlights, which is not always the lower one.
+    CHECK(seen->heading_key == "N");
+    CHECK(seen->entry_key == "u");
+
     // A heading whose letter is not the first one, and a list of its own.
     cata::fire_on_main_menu(headings(), 4, new_game_items(), settings_items(), 1);
     CHECK(seen->heading_text == "Settings");
+    CHECK(seen->heading_key == "t");
     CHECK(seen->entry_text == "Keybindings");
+    CHECK(seen->entry_key == "y");
 
-    // Three letters select this one, and none of them is spoken.
+    // Three letters select this one. The first is the one the game highlights,
+    // and saying all three would be reading out punctuation.
     cata::fire_on_main_menu(headings(), 5, new_game_items(), settings_items(), 0);
     CHECK(seen->heading_text == "Help");
+    CHECK(seen->heading_key == "e");
+
+    // A name the game marks no key on keeps its name and gets no key. World
+    // names are the real case: they are reached with the arrow keys only.
+    cata::fire_on_main_menu(headings(), 4, new_game_items(), {"Boston (2)"}, 0);
+    CHECK(seen->entry_text == "Boston (2)");
+    CHECK(seen->entry_key.empty());
 }
 
 // Help and Quit carry no list at all, and MOTD and Credits show a page of text

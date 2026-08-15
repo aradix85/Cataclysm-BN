@@ -46,6 +46,10 @@ menus.state = function(params)
         and {
           text = text.clean(entry.text),
           column = text.clean(entry.column),
+          -- Whether choosing this descends into another list. A uilist marks it
+          -- with a trailing ellipsis and nothing else; a caller that knows
+          -- without being told says so here.
+          opens = entry.opens == true,
           -- Absent means enabled: the game sets this on every entry, and a test
           -- that leaves it out is describing an ordinary one.
           enabled = entry.enabled ~= false,
@@ -71,7 +75,7 @@ end
 --- rather than lost. Both spellings occur: the character and three full stops.
 local function name_of(entry)
   local trimmed = entry.text:gsub("%s*%.%.%.$", ""):gsub("%s*\226\128\166$", "")
-  return trimmed, trimmed ~= entry.text
+  return trimmed, entry.opens or trimmed ~= entry.text
 end
 
 --- How many entries the filter leaves, as words rather than a bare number.

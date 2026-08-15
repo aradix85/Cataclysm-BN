@@ -37,6 +37,17 @@ auto spoken( const std::string &drawn ) -> std::string
     return remove_color_tags( shortcut_text( c_white, drawn ) );
 }
 
+// The key that jumps straight to what is drawn, or nothing where there is none.
+//
+// The game marks two or three per name -- `H<e|E|?>lp` -- and highlights the
+// first, which is the one a sighted player sees and the only one worth saying.
+// A world name carries no marking at all: worlds are reached with the arrow keys.
+auto hotkey_of( const std::string &drawn ) -> std::string
+{
+    const std::vector<std::string> keys = get_hotkeys( drawn );
+    return keys.empty() ? std::string() : keys.front();
+}
+
 // The worlds, each with how many characters live in it, written the way
 // `display_sub_menu` writes them.
 auto world_items() -> std::vector<std::string>
@@ -50,23 +61,17 @@ auto world_items() -> std::vector<std::string>
     return out;
 }
 
-// The list drawn under the selected heading, or nothing where the heading
-// carries no list.
+// The list drawn under the selected heading, as the game writes it and with its
+// markup intact, or nothing where the heading carries no list.
 auto entries_under( const int heading, const std::vector<std::string> &new_game_items,
                     const std::vector<std::string> &settings_items ) -> std::vector<std::string>
 {
     std::vector<std::string> out;
     switch( heading ) {
         case opt_new_char:
-        case opt_settings: {
-            const std::vector<std::string> &items =
-                heading == opt_new_char ? new_game_items : settings_items;
-            out.reserve( items.size() );
-            for( const std::string &item : items ) {
-                out.push_back( spoken( item ) );
-            }
-            return out;
-        }
+            return new_game_items;
+        case opt_settings:
+            return settings_items;
         case opt_load_char:
             return world_items();
         case opt_world:
@@ -101,8 +106,9 @@ void fire_on_main_menu( const std::vector<std::string> &headings, const int head
         sol::state_view lua( params.lua_state() );
         params["category"] = "MAIN_MENU";
 
-        sol::table heading = lua.create_table( 0, 3 );
+        sol::table heading = lua.create_table( 0, 4 );
         heading["text"] = spoken( headings[heading_sel] );
+        heading["key"] = hotkey_of( headings[heading_sel] );
         heading["cursor"] = heading_sel + 1;
         heading["count"] = static_cast<int>( headings.size() );
         params["heading"] = heading;
@@ -111,8 +117,9 @@ void fire_on_main_menu( const std::vector<std::string> &headings, const int head
             return;
         }
 
-        sol::table entry = lua.create_table( 0, 3 );
-        entry["text"] = entries[entry_sel];
+        sol::table entry = lua.create_table( 0, 4 );
+        entry["text"] = spoken( entries[entry_sel] );
+        entry["key"] = hotkey_of( entries[entry_sel] );
         entry["cursor"] = entry_sel + 1;
         entry["count"] = static_cast<int>( entries.size() );
         params["entry"] = entry;
