@@ -560,6 +560,13 @@ struct hook_entry {
 };
 
 struct hook_cache_entry {
+    // Which state the entries were parsed from. The cache is process-wide and
+    // keyed by hook name alone, so without this a second state holding the same
+    // number of handlers for that name silently inherits the first state's
+    // parse -- and an entry parsed as a plain function is then used against a
+    // table, or the priority order of one state is imposed on the other.
+    // Raw length cannot catch it, because the two counts are equal.
+    const void *owner = nullptr;
     int rawlen = -1;
     std::vector<hook_entry> entries;
 };
@@ -648,8 +655,10 @@ auto get_hook_entries( sol::state_view lua, std::string_view hook_name,
     auto &cache = get_hook_cache();
     auto &entry = cache[std::string{ hook_name }];
 
+    const void *owner = lua.lua_state();
     const int len = table_rawlen( lua, hooks );
-    if( entry.rawlen != len ) {
+    if( entry.owner != owner || entry.rawlen != len ) {
+        entry.owner = owner;
         entry.rawlen = len;
         entry.entries = build_hook_entries( lua, hook_name, hooks );
     }
@@ -659,10 +668,10 @@ auto get_hook_entries( sol::state_view lua, std::string_view hook_name,
 
 } // namespace
 
-// Whether a state has anything registered for this hook. Deliberately a raw
-// length rather than `get_hook_entries`: that cache is keyed by hook name only,
-// so asking it about two different states would let one state's indices be
-// reused against the other's table.
+// Whether a state has anything registered for this hook. A raw length rather
+// than `get_hook_entries`: parsing is the expensive half, this runs on every
+// firing, and asking the cache about a state that may not be chosen would evict
+// the parse belonging to the one that is.
 static auto state_has_hook( lua_state &state, std::string_view hook_name ) -> bool
 {
     auto &lua = state.lua;
