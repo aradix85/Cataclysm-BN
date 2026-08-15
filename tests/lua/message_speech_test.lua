@@ -1,8 +1,8 @@
 -- Drives the message policy from Lua, against the module the mod itself loads.
 -- Assertions live on the C++ side; each case writes one string into test_data.
 
-local messages = require("../../data/mods/bn_access/lib/messages")
-local text = require("../../data/mods/bn_access/lib/text")
+local messages = require("../../data/access/lib/messages")
+local text = require("../../data/access/lib/text")
 
 -- Decoration is drawn, not said. A line with no letter and no digit left would
 -- otherwise be read out glyph by glyph.

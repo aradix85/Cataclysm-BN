@@ -1,5 +1,6 @@
 #include "catalua.h"
 
+#include "access_layer.h"
 #include "debug.h"
 
 #include <algorithm>
@@ -658,9 +659,28 @@ auto get_hook_entries( sol::state_view lua, std::string_view hook_name,
 
 } // namespace
 
+// Which state a hook runs in. A caller may name one; otherwise it is the world's
+// while a world is loaded, and the accessibility layer's boot state otherwise.
+// Exactly one, never both, so nothing is ever spoken twice -- and the layer stays
+// reachable on the screens that exist before a world does and after one is left.
+static auto resolve_hook_state( const hook_opts &opts ) -> lua_state *
+{
+    if( opts.state ) {
+        return opts.state;
+    }
+    if( DynamicDataLoader::get_instance().lua ) {
+        return DynamicDataLoader::get_instance().lua.get();
+    }
+    return access::boot_state();
+}
+
 auto has_hooks( std::string_view hook_name, const hook_opts &opts ) -> bool
 {
-    auto &state = opts.state ? *opts.state : *DynamicDataLoader::get_instance().lua;
+    lua_state *resolved = resolve_hook_state( opts );
+    if( !resolved ) {
+        return false;
+    }
+    auto &state = *resolved;
     auto &lua = state.lua;
 
     const auto maybe_hooks = lua.globals()["game"]["hooks"][hook_name].get<sol::optional<sol::table>>();
@@ -694,7 +714,14 @@ auto run_hooks( std::string_view hook_name,
                 std::function < auto( sol::table &params ) -> void > init,
                 const hook_opts &opts ) -> sol::table
 {
-    auto &state = opts.state ? *opts.state : *DynamicDataLoader::get_instance().lua;
+    lua_state *resolved = resolve_hook_state( opts );
+    if( !resolved ) {
+        // No state at all: the test binary before one is built, and any call
+        // that beats `access::start()`. An empty table is what a hook with no
+        // entries returns anyway, so callers need no second shape to handle.
+        return sol::table{};
+    }
+    auto &state = *resolved;
     auto &lua = state.lua;
 
     auto params = lua.create_table();

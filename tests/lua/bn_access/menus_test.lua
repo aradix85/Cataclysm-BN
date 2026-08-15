@@ -5,11 +5,11 @@
 -- wording is not one screen's. It is also the reading model every later list
 -- reuses, which is why it is pinned entry by entry rather than sampled.
 --
--- The decisions live in data/mods/bn_access/lib/menus.lua and are pure: tables
+-- The decisions live in data/access/lib/menus.lua and are pure: tables
 -- in, list of strings out. That is what makes them assertable here, with no
 -- game running and no NVDA present.
 
-local menus = require("../../../data/mods/bn_access/lib/menus")
+local menus = require("../../../data/access/lib/menus")
 
 --- One firing's utterances as a single string, so that both the content and the
 --- count of them are pinned by one comparison.

@@ -3,7 +3,7 @@
 -- into test_data as one string, with " / " between utterances so that both the
 -- content and the count are pinned by one comparison.
 
-local prompts = require("../../data/mods/bn_access/lib/prompts")
+local prompts = require("../../data/access/lib/prompts")
 
 local function say(state, previous) return table.concat(prompts.utterances(state, previous), " / ") end
 

@@ -3,7 +3,7 @@
 -- as one string, with " / " between utterances so that both the content and the
 -- count are pinned by one comparison.
 
-local errors = require("../../data/mods/bn_access/lib/errors")
+local errors = require("../../data/access/lib/errors")
 
 local function say(current, previous) return table.concat(errors.utterances(current, previous), " / ") end
 

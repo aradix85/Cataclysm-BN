@@ -6,7 +6,7 @@
 
 #include <string>
 
-// The prompt-speech decisions live in data/mods/bn_access/lib/prompts.lua and
+// The prompt-speech decisions live in data/access/lib/prompts.lua and
 // are pure: tables in, list of strings out. That is what makes them assertable
 // here, with no game running and no NVDA present.
 //
@@ -240,16 +240,16 @@ TEST_CASE("bn_access_scripts_parse", "[lua]") {
     sol::state lua = make_lua_state();
 
     for (const char* script : {
-             "data/mods/bn_access/main.lua",
-             "data/mods/bn_access/lib/speech.lua",
-             "data/mods/bn_access/lib/text.lua",
-             "data/mods/bn_access/lib/messages.lua",
-             "data/mods/bn_access/lib/bearing.lua",
-             "data/mods/bn_access/lib/movement.lua",
-             "data/mods/bn_access/lib/surroundings.lua",
-             "data/mods/bn_access/lib/prompts.lua",
-             "data/mods/bn_access/lib/menus.lua",
-             "data/mods/bn_access/lib/errors.lua",
+             "data/access/main.lua",
+             "data/access/lib/speech.lua",
+             "data/access/lib/text.lua",
+             "data/access/lib/messages.lua",
+             "data/access/lib/bearing.lua",
+             "data/access/lib/movement.lua",
+             "data/access/lib/surroundings.lua",
+             "data/access/lib/prompts.lua",
+             "data/access/lib/menus.lua",
+             "data/access/lib/errors.lua",
          }) {
         INFO(script);
         sol::load_result loaded = lua.load_file(script);

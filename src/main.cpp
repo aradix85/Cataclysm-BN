@@ -22,6 +22,7 @@
 #else
 #   include <csignal>
 #endif
+#include "access_layer.h"
 #include "catalua.h"
 #include "color.h"
 #include "crash.h"
@@ -866,6 +867,10 @@ int main( int argc, char *argv[] )
 
     DebugLog( DL::Info, DC::Main ) << "LAPI version: " << cata::get_lapi_version_string();
     cata::startup_lua_test();
+
+    // The accessibility layer comes up before the first screen is drawn, and
+    // stays up for the whole session. It is not a mod: see src/access_layer.h.
+    cata::access::start();
 
     if( !lua_doc_output_path.empty() || !lua_types_output_path.empty() ) {
         init_colors();

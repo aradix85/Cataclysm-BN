@@ -1,10 +1,14 @@
 -- bn_access: self-voicing accessibility layer for Cataclysm: Bright Nights.
 --
--- Loading this mod is silent until the world is ready, and then it says so
--- once. Before that word, silence means the game is still loading; after it,
--- silence means something is wrong. Without that line the two are the same
--- sound, and a key pressed during a load that takes seconds is answered by
--- nothing at all -- which is what pressing harder is a response to.
+-- Loaded by the fork rather than by the mod system, so it is alive from the
+-- first screen to the last and cannot be switched off in a list. See
+-- src/access_layer.h for why, and for the two lives this file has.
+--
+-- Coming up is silent until the world is ready, and then it says so once.
+-- Before that word, silence means the game is still loading; after it, silence
+-- means something is wrong. Without that line the two are the same sound, and a
+-- key pressed during a load that takes seconds is answered by nothing at all --
+-- which is what pressing harder is a response to.
 --
 -- Nothing else announces itself. It speaks when the game says something to the
 -- player and when the game demands an answer.
@@ -14,9 +18,9 @@
 -- The message log speaks because that is the game telling the player what just
 -- happened to them. Menus speak because a menu holds the keyboard the same way
 -- a prompt does, and because the game's own action menu lists every verb in the
--- game, including this mod's own commands.
+-- game, including this layer's own commands.
 --
--- The mod owns one key: the question the game cannot answer by itself. Being
+-- The layer owns one key: the question the game cannot answer by itself. Being
 -- told what happened is not the same as being able to ask what is there.
 
 local speech = require("./lib/speech")
@@ -28,15 +32,25 @@ local movement = require("./lib/movement")
 local surroundings = require("./lib/surroundings")
 local text = require("./lib/text")
 
-local mod = game.mod_runtime[game.current_mod]
+-- No mod table here, and no mod id: the fork loads this file itself, into every
+-- Lua state that exists, so that the layer is alive on the screens that come
+-- before a world and on the ones that come after leaving it.
+--
+-- The two lives differ in one way only. Loaded before a world, there is nothing
+-- loading and nothing to say about a world, and the one thing worth knowing is
+-- that the layer is there at all -- which on the opening screen is also the only
+-- evidence a player without sight can have of it.
+local at_boot = access_is_boot == true
 
-mod.speech = speech
-
--- This file runs while the world is being built, which takes about twenty
--- seconds of data loading and mapgen and says nothing at all. One word here and
--- one when the world is ready turn that silence into a bracket: this is the
--- start of the wait, "ready" is the end of it, and neither is an error.
-speech.say("Loading.")
+if at_boot then
+  speech.say("Accessibility on.")
+else
+  -- This file runs while the world is being built, which takes about twenty
+  -- seconds of data loading and mapgen and says nothing at all. One word here
+  -- and one when the world is ready turn that silence into a bracket: this is
+  -- the start of the wait, "ready" is the end of it, and neither is an error.
+  speech.say("Loading.")
+end
 
 -- The game's own error report, first of everything, because it is how a fault
 -- anywhere else -- in the game, in this file, in a hook below -- reaches the

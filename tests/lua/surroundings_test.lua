@@ -1,8 +1,8 @@
 -- Bearings and the surroundings overview, against the modules the mod loads.
 -- Assertions live on the C++ side.
 
-local bearing = require("../../data/mods/bn_access/lib/bearing")
-local surroundings = require("../../data/mods/bn_access/lib/surroundings")
+local bearing = require("../../data/access/lib/bearing")
+local surroundings = require("../../data/access/lib/surroundings")
 
 -- All eight points. x runs east, y runs south, so north is negative y.
 test_data.east = bearing.of(3, 0)
@@ -46,7 +46,7 @@ test_data.empty = table.concat(surroundings.overview({}), " / ")
 
 -- What a step reports, and what it does not.
 
-local movement = require("../../data/mods/bn_access/lib/movement")
+local movement = require("../../data/access/lib/movement")
 
 local function say(step) return table.concat(movement.utterances(step), " / ") end
 
