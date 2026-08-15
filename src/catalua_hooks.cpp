@@ -26,6 +26,7 @@ constexpr auto hook_names = std::array
     "on_creature_melee_attacked",
     "on_creature_performed_technique",
     "on_creature_spawn",
+    "on_debugmsg",
     "on_dialogue_end",
     "on_dialogue_option",
     "on_dialogue_start",

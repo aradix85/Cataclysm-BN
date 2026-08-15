@@ -33,6 +33,7 @@
 #include "cached_options.h"
 #include "color.h"
 #include "cursesdef.h"
+#include "debug_hook.h"
 #include "enum_bitset.h"
 #include "enum_conversions.h"
 #include "filesystem.h"
@@ -350,6 +351,12 @@ static void debug_error_prompt(
     ctxt.register_manual_key( 'I' );
     ctxt.register_manual_key( ' ' );
 #endif
+
+    // This screen says nothing on its own and holds the keyboard until one of
+    // three keys arrives, so a mod is told about it here rather than left to
+    // discover it. The raw error, not the report drawn around it.
+    cata::run_on_debugmsg_hook( text );
+
     for( bool stop = false; !stop && !dont_debugmsg; ) {
         ui_manager::redraw();
         switch( inp_mngr.get_input_event().get_first_input() ) {
