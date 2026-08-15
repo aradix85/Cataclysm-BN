@@ -556,6 +556,13 @@ struct hook_entry {
 };
 
 struct hook_cache_entry {
+    // Which state the entries were parsed from. The cache is process-wide and
+    // keyed by hook name alone, so without this a second state holding the same
+    // number of handlers for that name silently inherits the first state's
+    // parse -- and an entry parsed as a plain function is then used against a
+    // table, or the priority order of one state is imposed on the other.
+    // Raw length cannot catch it, because the two counts are equal.
+    const void *owner = nullptr;
     int rawlen = -1;
     std::vector<hook_entry> entries;
 };
@@ -644,8 +651,10 @@ auto get_hook_entries( sol::state_view lua, std::string_view hook_name,
     auto &cache = get_hook_cache();
     auto &entry = cache[std::string{ hook_name }];
 
+    const void *owner = lua.lua_state();
     const int len = table_rawlen( lua, hooks );
-    if( entry.rawlen != len ) {
+    if( entry.owner != owner || entry.rawlen != len ) {
+        entry.owner = owner;
         entry.rawlen = len;
         entry.entries = build_hook_entries( lua, hook_name, hooks );
     }
