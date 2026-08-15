@@ -659,24 +659,59 @@ auto get_hook_entries( sol::state_view lua, std::string_view hook_name,
 
 } // namespace
 
-// Which state a hook runs in. A caller may name one; otherwise it is the world's
-// while a world is loaded, and the accessibility layer's boot state otherwise.
-// Exactly one, never both, so nothing is ever spoken twice -- and the layer stays
-// reachable on the screens that exist before a world does and after one is left.
-static auto resolve_hook_state( const hook_opts &opts ) -> lua_state *
+// Whether a state has anything registered for this hook. Deliberately a raw
+// length rather than `get_hook_entries`: that cache is keyed by hook name only,
+// so asking it about two different states would let one state's indices be
+// reused against the other's table.
+static auto state_has_hook( lua_state &state, std::string_view hook_name ) -> bool
+{
+    auto &lua = state.lua;
+    const auto maybe_hooks = lua.globals()["game"]["hooks"][hook_name].get<sol::optional<sol::table>>();
+    if( !maybe_hooks ) {
+        return false;
+    }
+    return table_rawlen( lua, *maybe_hooks ) > 0;
+}
+
+// Which state a hook runs in. See the header for the rule.
+//
+// Preferring the world's outright is what this must not do. That state answers
+// from the moment it is constructed, while the accessibility layer is loaded
+// into it only at the end of data loading, so everything the game reports in
+// between -- a mod that fails its API version, a JSON error, a world whose mod
+// list names something that no longer exists -- would reach a state with no
+// handler and be silent. That silence sits inside the wait the layer has just
+// told the player to expect, and it stops the game on a blocking error screen
+// that says nothing.
+auto pick_hook_state( std::string_view hook_name, lua_state *world, lua_state *boot ) -> lua_state *
+{
+    if( world && state_has_hook( *world, hook_name ) ) {
+        return world;
+    }
+    if( boot && state_has_hook( *boot, hook_name ) ) {
+        return boot;
+    }
+    // Neither has a handler. Which one is returned decides nothing about what is
+    // said; it only gives the caller the ordinary empty result rather than a
+    // second shape to handle.
+    return world ? world : boot;
+}
+
+// Exactly one state, never both, so nothing is ever spoken twice -- and the
+// layer stays reachable on the screens that exist before a world does and after
+// one is left.
+static auto resolve_hook_state( std::string_view hook_name, const hook_opts &opts ) -> lua_state *
 {
     if( opts.state ) {
         return opts.state;
     }
-    if( DynamicDataLoader::get_instance().lua ) {
-        return DynamicDataLoader::get_instance().lua.get();
-    }
-    return access::boot_state();
+    return pick_hook_state( hook_name, DynamicDataLoader::get_instance().lua.get(),
+                            access::boot_state() );
 }
 
 auto has_hooks( std::string_view hook_name, const hook_opts &opts ) -> bool
 {
-    lua_state *resolved = resolve_hook_state( opts );
+    lua_state *resolved = resolve_hook_state( hook_name, opts );
     if( !resolved ) {
         return false;
     }
@@ -714,7 +749,7 @@ auto run_hooks( std::string_view hook_name,
                 std::function < auto( sol::table &params ) -> void > init,
                 const hook_opts &opts ) -> sol::table
 {
-    lua_state *resolved = resolve_hook_state( opts );
+    lua_state *resolved = resolve_hook_state( hook_name, opts );
     if( !resolved ) {
         // No state at all: the test binary before one is built, and any call
         // that beats `access::start()`. An empty table is what a hook with no

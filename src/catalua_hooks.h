@@ -33,6 +33,15 @@ const hook_opts &opts = {} ) -> sol::table;
 /// Return whether a hook currently has registered entries without building params/results tables.
 auto has_hooks( std::string_view hook_name, const hook_opts &opts = {} ) -> bool;
 
+/// Which of two states runs a hook: the one that has a handler for it, and
+/// `world` when both do. Either may be null.
+///
+/// Split out of the lookup so that the choice can be asserted without a world
+/// and without the accessibility layer's own state having been built, and
+/// because getting it wrong is inaudible: a state that answers a hook while
+/// holding no handler for it swallows the firing instead of passing it on.
+auto pick_hook_state( std::string_view hook_name, lua_state *world, lua_state *boot ) -> lua_state *;
+
 /// Returns the hook results directly, to simplify.
 auto get_hook_results( const sol::table &hook_results ) -> std::vector<sol::object>;
 

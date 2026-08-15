@@ -49,3 +49,47 @@ TEST_CASE("access_layer_loads_into_a_state", "[lua]") {
 
     tts::set(std::move(previous));
 }
+
+// Which state answers a hook. The case that matters is the world's state during
+// the twenty seconds of data loading: it exists from the start of that wait and
+// the layer is loaded into it only at the end, so for the whole of it the world
+// holds no handler. Anything the game reports meanwhile -- a mod that fails, a
+// JSON error, a world naming a mod that is gone -- stops the game on a blocking
+// error screen, and if that firing goes to the world's state it is swallowed and
+// the screen says nothing. Silence there is indistinguishable from the loading
+// the player was told to expect.
+
+TEST_CASE("hook_state_is_the_one_holding_the_handler", "[lua]") {
+    auto recorder = std::make_unique<tts::recording_sink>();
+    std::unique_ptr<tts::sink> previous = tts::set(std::move(recorder));
+
+    auto empty_state = []() {
+        std::unique_ptr<cata::lua_state, cata::lua_state_deleter> s = cata::make_wrapped_state();
+        cata::init_global_state_tables(*s, std::vector<mod_id>{});
+        cata::define_hooks(*s);
+        return s;
+    };
+
+    std::unique_ptr<cata::lua_state, cata::lua_state_deleter> world = empty_state();
+    std::unique_ptr<cata::lua_state, cata::lua_state_deleter> boot = empty_state();
+    cata::access::load_into(*boot);
+
+    // A world still loading: its state is there, its hook tables are there, and
+    // nothing of ours is in them yet.
+    CHECK(cata::pick_hook_state("on_debugmsg", world.get(), boot.get()) == boot.get());
+
+    // No world at all -- the opening screen, and everything after leaving a world.
+    CHECK(cata::pick_hook_state("on_debugmsg", nullptr, boot.get()) == boot.get());
+
+    // Loading has finished. Both hold a handler now, and the world's wins, so no
+    // firing is ever answered twice.
+    cata::access::load_into(*world);
+    CHECK(cata::pick_hook_state("on_debugmsg", world.get(), boot.get()) == world.get());
+
+    // A hook neither of them handles resolves to something rather than nothing,
+    // so a caller reading the results table needs no second shape.
+    CHECK(cata::pick_hook_state("on_mapgen_postprocess", world.get(), boot.get()) == world.get());
+    CHECK(cata::pick_hook_state("on_mapgen_postprocess", nullptr, nullptr) == nullptr);
+
+    tts::set(std::move(previous));
+}
