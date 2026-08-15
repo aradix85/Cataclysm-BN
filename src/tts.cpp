@@ -4,6 +4,8 @@
 #include <string>
 #include <utility>
 
+#include "cached_options.h"
+
 #if defined(_WIN32)
 #include "catacharset.h"
 #include "platform_win.h"
@@ -136,6 +138,20 @@ class nvda_sink : public tts::sink
 
 std::unique_ptr<tts::sink> make_default_sink()
 {
+    // A test binary talks to a recorder, never to NVDA. The suite loads the
+    // layer into the world it builds, and the game's own tests raise real
+    // prompts and real messages while they run -- so with the platform sink as
+    // the default the machine that runs the suite is spoken to, at length, by
+    // nobody's game. That is somebody's screen reader and somebody's braille
+    // display, in the middle of whatever they were reading.
+    //
+    // A recorder rather than silence, so that a test which forgets to install
+    // one of its own still has a destination it can read back, and so that the
+    // safe default costs a test nothing. Tests that install their own sink are
+    // unaffected: this is only what `get()` answers when nothing was installed.
+    if( test_mode ) {
+        return std::make_unique<tts::recording_sink>();
+    }
 #if defined(_WIN32)
     return std::make_unique<nvda_sink>();
 #else

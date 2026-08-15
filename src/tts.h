@@ -12,6 +12,11 @@
  * other platforms, and when the DLL or NVDA is absent, the default sink stays
  * valid and silent rather than failing.
  *
+ * In a test binary the default is a recording_sink instead, so that the suite
+ * speaks to nobody: it loads the layer into the world it builds, and the game's
+ * own tests raise prompts and messages that the layer would otherwise say out
+ * loud on whatever machine is running them.
+ *
  * The sink is replaceable at runtime rather than behind a TESTS compile flag, so
  * the path exercised by tests is the same path that ships.
  */
