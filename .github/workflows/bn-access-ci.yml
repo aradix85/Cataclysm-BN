@@ -65,6 +65,56 @@ jobs:
   # Deno during the job, which marks an otherwise healthy build as failed.
   # Bundling the mods always keeps that quiet.
 
+  # The EmmyLua analyser, judged rather than merely run.
+  #
+  # The shared build file already runs it on the Linux job, over the whole clone
+  # and with continue-on-error, so its output is a wall of upstream findings that
+  # can never fail anything and that nobody reads. This job reads it: the same
+  # analyser, the same annotations, and build-scripts/bn_access_luacheck.py to
+  # keep only data/access and to count the two families that are permanent
+  # there. The same script runs on the owner's machine through werk\luacheck.ps1,
+  # so a local check and this one cannot drift apart.
+  #
+  # It reports rather than gates, and that is deliberate. A require that is
+  # genuinely broken stops the layer from loading, and the C++ suite already
+  # fails on that before anything is published. What is left for the analyser is
+  # the quieter class -- a field that does not exist, a type that does not match
+  # in a branch that rarely runs -- which is worth knowing about and is not worth
+  # withholding a playable build for.
+  #
+  # It reuses the annotations the build already generated and uploaded, so no
+  # second build of the game is needed to typecheck against a current surface.
+  luacheck:
+    name: Lua analysis, ours only
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch the annotations the build generated
+        uses: actions/download-artifact@v4
+        with:
+          name: lua-docs
+
+      - name: Setup EmmyLua checker
+        uses: scarf005/emmylua_check_action@v1.0.3
+        with:
+          version: "0.22.0"
+          token: ${{ github.token }}
+
+      - name: Check the accessibility layer
+        run: |
+          emmylua_check . > emmylua-raw.txt 2>&1 || true
+          python3 build-scripts/bn_access_luacheck.py emmylua-raw.txt \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the raw report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emmylua-report
+          path: emmylua-raw.txt
+
   # Upstream's packaging step always makes a second, soundless Windows zip
   # alongside the full one. Turning that off would mean editing their build
   # file, which is exactly the kind of change that conflicts at every merge, so
