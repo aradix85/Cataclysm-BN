@@ -3,7 +3,6 @@
 #include "cata_utility.h"
 #include "catalua_hooks.h"
 #include "catalua_sol.h"
-#include "init.h"
 
 namespace cata
 {
@@ -20,10 +19,12 @@ bool is_running_on_debugmsg_hook()
 
 void run_on_debugmsg_hook( const std::string &text )
 {
-    // Errors are reported before a world is loaded and after it is unloaded,
-    // when there is no Lua state at all; `has_hooks` would dereference a null
-    // pointer.
-    if( running_on_debugmsg_hook || !DynamicDataLoader::get_instance().lua ) {
+    // No check for a world's Lua state. An error is reported before a world is
+    // loaded and after it is unloaded -- a failure while loading one is exactly
+    // that -- and `resolve_hook_state` answers with the layer's own state there.
+    // This screen swallows every key but its own, so a silent one leaves nothing
+    // to press at all.
+    if( running_on_debugmsg_hook ) {
         return;
     }
     if( !has_hooks( "on_debugmsg" ) ) {

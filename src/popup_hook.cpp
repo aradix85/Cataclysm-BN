@@ -3,7 +3,6 @@
 #include "cata_utility.h"
 #include "catalua_hooks.h"
 #include "catalua_sol.h"
-#include "init.h"
 #include "input.h"
 
 namespace cata
@@ -23,9 +22,12 @@ void run_on_query_popup_hook( const std::string &category, const std::string &te
                               const std::vector<std::string> &option_actions,
                               const std::size_t cursor )
 {
-    // Popups exist before a world is loaded and after it is unloaded, when there
-    // is no Lua state at all; `has_hooks` would dereference a null pointer.
-    if( running_on_query_popup_hook || !DynamicDataLoader::get_instance().lua ) {
+    // No check for a world's Lua state. A popup is raised before a world is
+    // loaded and after it is unloaded -- "Really quit?" on the opening screen is
+    // one -- and `resolve_hook_state` answers with the layer's own state there.
+    // A prompt takes the keyboard whatever screen it is on, so a silent one is
+    // a dead keyboard whether or not a world exists.
+    if( running_on_query_popup_hook ) {
         return;
     }
     if( !has_hooks( "on_query_popup" ) ) {
