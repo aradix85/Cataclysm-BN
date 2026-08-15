@@ -69,6 +69,7 @@ TEST_CASE("lua_hook_on_add_msg_does_not_re_enter", "[lua]") {
 // With nothing registered the hook must build no tables and must leave the guard
 // alone, so an unused hook stays free.
 TEST_CASE("lua_hook_on_add_msg_is_a_no_op_when_unregistered", "[lua]") {
+    const test_lua_hooks::emptied_hook empty{test_lua_hooks::global_lua_state(), "on_add_msg"};
     REQUIRE_FALSE(cata::has_hooks("on_add_msg"));
 
     cata::run_on_add_msg_hook("Nobody is listening.", m_info);

@@ -172,6 +172,7 @@ TEST_CASE("lua_hook_on_action_claim_stops_the_game_and_later_hooks", "[lua][acti
 // With nothing registered the hook must build no tables and claim nothing, so
 // every keypress in a game without the mod costs the same as before.
 TEST_CASE("lua_hook_on_action_is_a_no_op_when_unregistered", "[lua][actions]") {
+    const test_lua_hooks::emptied_hook empty{test_lua_hooks::global_lua_state(), "on_action"};
     REQUIRE_FALSE(cata::has_hooks("on_action"));
 
     CHECK_FALSE(cata::lua_actions::run_on_action_hook("bn_access_status"));

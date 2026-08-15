@@ -77,6 +77,7 @@ TEST_CASE("lua_hook_on_debugmsg_does_not_re_enter", "[lua]") {
 // loaded without a handler for one. An unregistered hook must build no tables and
 // must leave the guard alone.
 TEST_CASE("lua_hook_on_debugmsg_is_a_no_op_when_unregistered", "[lua]") {
+    const test_lua_hooks::emptied_hook empty{test_lua_hooks::global_lua_state(), "on_debugmsg"};
     REQUIRE_FALSE(cata::has_hooks("on_debugmsg"));
 
     cata::run_on_debugmsg_hook("Nobody is listening.");

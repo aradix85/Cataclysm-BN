@@ -171,6 +171,8 @@ TEST_CASE("lua_hook_on_uilist_is_declared_and_idle_when_nothing_listens", "[lua]
 
     const auto declared = lua["game"]["hooks"]["on_uilist"].get<sol::optional<sol::table>>();
     CHECK(declared.has_value());
+
+    const test_lua_hooks::emptied_hook empty{lua, "on_uilist"};
     REQUIRE_FALSE(cata::has_hooks("on_uilist"));
 
     cata::fire_on_uilist("UILIST", "Nobody is listening", "", item_actions(), {0, 1, 2}, 0);

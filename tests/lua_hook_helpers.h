@@ -42,4 +42,26 @@ struct hook_cleanup {
     ~hook_cleanup() { list[idx] = sol::lua_nil; }
 };
 
+// Empties a hook list for the duration of a test and puts the original back.
+//
+// The accessibility layer is loaded into the world the suite builds, so its own
+// handlers are registered in this state and "nothing is listening" is never true
+// of it by default. Without this, a test asserting that an unregistered hook
+// stays idle passes or fails according to what ran before it -- which is the
+// cross-contamination upstream's issue #3146 is about, and it is invisible: the
+// assertion still reads correct.
+struct emptied_hook {
+    sol::table hooks;
+    std::string name;
+    sol::table original;
+
+    emptied_hook(sol::state& lua, std::string hook_name)
+        : hooks(lua["game"]["hooks"].get<sol::table>()),
+          name(std::move(hook_name)),
+          original(hooks[name].get<sol::table>()) {
+        hooks[name] = lua.create_table();
+    }
+    ~emptied_hook() { hooks[name] = original; }
+};
+
 } // namespace test_lua_hooks
