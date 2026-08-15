@@ -31,6 +31,7 @@
 #include "loading_ui.h"
 #include "mapbuffer.h"
 #include "mapsharing.h"
+#include "main_menu_hook.h"
 #include "messages.h"
 #include "newcharacter.h"
 #include "options.h"
@@ -710,6 +711,7 @@ bool main_menu::opening_screen()
         // Refresh in case player created new world or deleted old world
         // Since this is an index for a mutable array, it should always be regenerated instead of modified.
         const size_t last_world_pos = world_generator->get_world_index( world_generator->last_world_name );
+        cata::fire_on_main_menu( vMenuItems, sel1, vNewGameSubItems, vSettingsSubItems, sel2 );
         std::string action = ctxt.handle_input();
         input_event sInput = ctxt.get_raw_input();
 
