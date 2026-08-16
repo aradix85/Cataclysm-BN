@@ -177,10 +177,11 @@ game.add_hook("on_uilist", { priority = 100, fn = speak_menu })
 -- closing this screen leaves the menu underneath to announce itself again --
 -- which is right, because arriving back somewhere is arriving.
 --
--- What it cannot do: this screen scrolls a window rather than moving a cursor,
--- and refuses to scroll a list that already fits, so the entries below the
--- first are out of reach there. Typing filters the list, and that is the way to
--- them.
+-- What it took to make it readable: that screen had no selection at all. It
+-- scrolled a window and acted on a hotkey letter, and refused to scroll a list
+-- that already fits -- so on most screens every arrow key was answered by
+-- silence and no row below the first could be reached. The fork gives it a
+-- selection that the window follows; see src/keybindings_hook.h.
 game.add_hook("on_keybindings", { priority = 100, fn = speak_menu })
 
 -- The screen the game opens on, which is not a uilist and needs a firing point

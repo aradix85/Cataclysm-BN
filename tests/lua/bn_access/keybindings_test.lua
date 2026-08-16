@@ -37,13 +37,13 @@ check.equal(
 check.equal(
   say(screen("DEFAULTMODE", 2, "Wield an item", "w"), screen("DEFAULTMODE", 1, "Ask what is around you", "F9")),
   "Wield an item, w, 2 of 74.",
-  "Scrolling one line answers with the line it scrolled to, and the screen never names itself twice"
+  "Stepping one row answers with the row it landed on, and the screen never names itself twice"
 )
 
 check.equal(
   say(screen("DEFAULTMODE", 1, "Wield an item", "w", 1), screen("DEFAULTMODE", 1, "Ask what is around you", "F9")),
   "1 entry. / Wield an item, w, 1 of 1.",
-  "Typing into the filter says how much is left and then what it left, which is how the rows a short list will not scroll to are reached"
+  "Typing into the filter says how much is left and then what it left"
 )
 
 check.equal(

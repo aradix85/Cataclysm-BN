@@ -64,9 +64,93 @@ const std::vector<std::string> rows{ "BN_TEST_ONE", "BN_TEST_TWO", "BN_TEST_THRE
 
 } // namespace
 
+// The keybindings screen was built to scroll a window over a list with nothing
+// selected in it, and to refuse to scroll a list that already fits. Without
+// sight that is not a small flaw: on most screens every arrow key answers with
+// silence, which reads as a dead keyboard, and no row below the first can ever
+// be reached. These cases pin the selection that replaces it.
+
+TEST_CASE( "keybindings_selection_walks_a_list_that_fits_on_screen", "[lua]" )
+{
+    // Six rows, a window of twenty: upstream would not move at all here.
+    cata::list_position at{ 0, 0 };
+
+    at = cata::move_selection( at, 1, 6, 20, true );
+    CHECK( at.selected == 1 );
+    CHECK( at.offset == 0 );
+
+    at = cata::move_selection( at, 1, 6, 20, true );
+    CHECK( at.selected == 2 );
+    // The window stays put while the row it holds is visible.
+    CHECK( at.offset == 0 );
+}
+
+TEST_CASE( "keybindings_selection_drags_the_window_only_at_the_edges", "[lua]" )
+{
+    // Standing on the last visible row of a longer list.
+    cata::list_position at{ 4, 0 };
+
+    at = cata::move_selection( at, 1, 20, 5, true );
+    CHECK( at.selected == 5 );
+    CHECK( at.offset == 1 );
+
+    // And back up the other way.
+    at = cata::move_selection( at, -1, 20, 5, true );
+    CHECK( at.selected == 4 );
+    CHECK( at.offset == 1 );
+}
+
+TEST_CASE( "keybindings_selection_reaches_the_last_row", "[lua]" )
+{
+    // The tail of the list was unreachable before, since the offset stopped a
+    // whole window short of the end.
+    const cata::list_position at = cata::move_selection( { 18, 14 }, 1, 20, 5, true );
+    CHECK( at.selected == 19 );
+    CHECK( at.offset == 15 );
+}
+
+TEST_CASE( "keybindings_selection_wraps_a_step_and_clamps_a_page", "[lua]" )
+{
+    // A step off either end lands on the other, so a keypress is always
+    // answered by a row rather than by silence.
+    cata::list_position at = cata::move_selection( { 19, 15 }, 1, 20, 5, true );
+    CHECK( at.selected == 0 );
+    CHECK( at.offset == 0 );
+
+    at = cata::move_selection( { 0, 0 }, -1, 20, 5, true );
+    CHECK( at.selected == 19 );
+    CHECK( at.offset == 15 );
+
+    // A page is a distance rather than a step, so it stops at the end instead
+    // of arriving at the far one.
+    at = cata::move_selection( { 17, 13 }, 5, 20, 5, false );
+    CHECK( at.selected == 19 );
+
+    at = cata::move_selection( { 2, 0 }, -5, 20, 5, false );
+    CHECK( at.selected == 0 );
+}
+
+TEST_CASE( "keybindings_selection_survives_the_filter_shrinking_the_list", "[lua]" )
+{
+    // Typing rewrites the list under the selection on every keypress.
+    cata::list_position at = cata::clamp_selection( { 17, 13 }, 4, 5 );
+    CHECK( at.selected == 3 );
+    CHECK( at.offset == 0 );
+
+    // A filter matching nothing leaves nothing to stand on, and the row the
+    // hook would report has to be gone with it.
+    at = cata::clamp_selection( { 3, 0 }, 0, 5 );
+    CHECK( at.selected == 0 );
+    CHECK( at.offset == 0 );
+
+    at = cata::move_selection( { 0, 0 }, 1, 0, 5, true );
+    CHECK( at.selected == 0 );
+    CHECK( at.offset == 0 );
+}
+
 // The screen has to arrive whole: whose keys are being listed, what the screen
-// is called, how many rows the filter left, and the row the view sits on with
-// its name and its keys. That is the same shape a menu arrives in, which is
+// is called, how many rows the filter left, and the row the selection sits on
+// with its name and its keys. That is the same shape a menu arrives in, which is
 // what lets one reading model answer both.
 TEST_CASE( "lua_hook_on_keybindings_carries_the_screen_and_the_row_in_view", "[lua]" )
 {
@@ -98,10 +182,10 @@ TEST_CASE( "lua_hook_on_keybindings_carries_the_screen_and_the_row_in_view", "[l
     CHECK_FALSE( seen->entry_column.empty() );
 }
 
-// The screen scrolls a window over the list instead of moving a cursor, so the
-// offset is the only thing saying which row a keypress landed on. Off by one
-// here means every scroll announces its neighbour.
-TEST_CASE( "lua_hook_on_keybindings_reports_the_row_the_offset_points_at", "[lua]" )
+// The selection is the only thing saying which row a keypress landed on. Off by
+// one here means every step announces its neighbour, which a player without
+// sight has no way to catch.
+TEST_CASE( "lua_hook_on_keybindings_reports_the_row_the_selection_points_at", "[lua]" )
 {
     sol::state &lua = test_lua_hooks::global_lua_state();
 
@@ -128,7 +212,7 @@ TEST_CASE( "lua_hook_on_keybindings_reports_the_row_the_offset_points_at", "[lua
 }
 
 // Typing a filter that matches nothing leaves the screen open on an empty list,
-// and the offset it kept from before then points at nothing. Both params stay
+// and the selection it kept from before then points at nothing. Both params stay
 // unset rather than zeroed, so a handler reads "nothing to report" instead of
 // naming a row that is not on screen.
 TEST_CASE( "lua_hook_on_keybindings_has_no_row_when_the_filter_left_none", "[lua]" )

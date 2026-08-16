@@ -1187,6 +1187,11 @@ action_id input_context::display_menu( const bool permit_execute_action )
     static const nc_color unbound_key = c_light_red;
     // (vertical) scroll offset
     size_t scroll_offset = 0;
+    // The row the player is on. Upstream had none: the screen scrolled a window
+    // and acted on a hotkey letter, which leaves a list that already fits with
+    // no way to move through it at all. The arithmetic is in
+    // src/keybindings_hook.cpp so that it is asserted without drawing anything.
+    size_t selected = 0;
     // keybindings help
     std::string legend;
     legend += colorize( _( "Unbound keys" ), unbound_key ) + "\n";
@@ -1207,6 +1212,15 @@ action_id input_context::display_menu( const bool permit_execute_action )
     std::string filter_phrase;
     std::string action;
     int raw_input_char = 0;
+
+    // Moving the selection and letting the window follow it, in one place, so
+    // each key below is a single line and stays trivial to merge.
+    const auto move_by = [&]( const int delta, const bool wrap ) {
+        const cata::list_position at = cata::move_selection( { selected, scroll_offset }, delta,
+                                       filtered_registered_actions.size(), display_height, wrap );
+        selected = at.selected;
+        scroll_offset = at.offset;
+    };
 
     const auto redraw = [&]( ui_adaptor & ui ) {
         werase( w_help );
@@ -1251,6 +1265,11 @@ action_id input_context::display_menu( const bool permit_execute_action )
             } else {
                 col = global_key;
             }
+            // The selected row, drawn the way every other list in the game draws
+            // one. Nothing marked it before, because nothing was selected.
+            if( i + scroll_offset == selected ) {
+                col = hilite( col );
+            }
             mvwprintz( w_help, point( 4, i + 10 ), col, "%s:", get_action_name( action_id ) );
             mvwprintz( w_help, point( 52, i + 10 ), col, "%s", get_desc( action_id ) );
         }
@@ -1268,7 +1287,7 @@ action_id input_context::display_menu( const bool permit_execute_action )
     ime_sentry sentry( ime_sentry::keep );
     while( true ) {
         ui_manager::redraw();
-        cata::fire_on_keybindings( *this, category, filtered_registered_actions, scroll_offset );
+        cata::fire_on_keybindings( *this, category, filtered_registered_actions, selected );
 
         if( status == s_show ) {
             filter_phrase = spopup.query_string( false );
@@ -1284,8 +1303,13 @@ action_id input_context::display_menu( const bool permit_execute_action )
         }
 
         filtered_registered_actions = filter_strings_by_phrase( org_registered_actions, filter_phrase );
-        if( scroll_offset > filtered_registered_actions.size() ) {
-            scroll_offset = 0;
+        // The filter rewrites the list under the selection on every keypress, so
+        // put it back inside before anything reads it.
+        {
+            const cata::list_position at = cata::clamp_selection( { selected, scroll_offset },
+                                           filtered_registered_actions.size(), display_height );
+            selected = at.selected;
+            scroll_offset = at.offset;
         }
 
         // In addition to the modifiable hotkeys, we also check for hardcoded
@@ -1313,35 +1337,13 @@ action_id input_context::display_menu( const bool permit_execute_action )
                 status = s_execute;
             }
         } else if( action == "DOWN" ) {
-            if( !filtered_registered_actions.empty()
-                && filtered_registered_actions.size() > display_height
-                && scroll_offset < filtered_registered_actions.size() - display_height ) {
-                scroll_offset++;
-            }
+            move_by( 1, true );
         } else if( action == "UP" ) {
-            if( !filtered_registered_actions.empty()
-                && scroll_offset > 0 ) {
-                scroll_offset--;
-            }
+            move_by( -1, true );
         } else if( action == "PAGE_DOWN" ) {
-            if( filtered_registered_actions.empty() ) {
-                // do nothing
-            } else if( scroll_offset + display_height < filtered_registered_actions.size() ) {
-                scroll_offset += std::min( display_height, filtered_registered_actions.size() -
-                                           display_height - scroll_offset );
-            } else if( filtered_registered_actions.size() > display_height ) {
-                scroll_offset = 0;
-            }
+            move_by( static_cast<int>( display_height ), false );
         } else if( action == "PAGE_UP" ) {
-            if( filtered_registered_actions.empty() ) {
-                // do nothing
-            } else if( scroll_offset >= display_height ) {
-                scroll_offset -= display_height;
-            } else if( scroll_offset > 0 ) {
-                scroll_offset = 0;
-            } else if( filtered_registered_actions.size() > display_height ) {
-                scroll_offset = filtered_registered_actions.size() - display_height;
-            }
+            move_by( -static_cast<int>( display_height ), false );
         } else if( action == "QUIT" ) {
             if( status != s_show ) {
                 status = s_show;
