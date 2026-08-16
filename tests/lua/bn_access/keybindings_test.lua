@@ -30,7 +30,9 @@ local function screen(opts)
     cursor = opts.cursor,
     picking = opts.picking,
     keys = KEYS,
-    entry = opts.name and { text = opts.name, column = opts.keys, letter = opts.letter } or nil,
+    entry = opts.name
+        and { text = opts.name, column = opts.keys, letter = opts.letter, scope = opts.scope }
+      or nil,
   })
 end
 
@@ -118,4 +120,34 @@ check.equal(
   ),
   "MAIN MENU, 16 entries. / Options, 1 of 16.",
   "Closing the key list returns to the menu, which names itself again rather than answering with silence"
+)
+
+-- Where a key works is drawn in colour and said nowhere, and it is the whole
+-- difference between the two keys that add one. A key that answers only on the
+-- screen being described is not the same as one that answers in the game.
+check.equal(
+  say(
+    screen({ cursor = 2, name = "Wield an item", keys = "w", scope = "global" }),
+    screen({ cursor = 1, name = "Ask what is around you", keys = "F9", scope = "global" })
+  ),
+  "Wield an item, w, everywhere, 2 of 74.",
+  "A key that works across the game says so"
+)
+
+check.equal(
+  say(
+    screen({ category = "INVENTORY", cursor = 3, name = "Compare two items", keys = "c", scope = "local" }),
+    screen({ category = "INVENTORY", cursor = 2, name = "Wield an item", keys = "w", scope = "global" })
+  ),
+  "Compare two items, c, this screen only, 3 of 74.",
+  "A key that works only on this screen says that instead, so choosing between the two add keys is possible by ear"
+)
+
+check.equal(
+  say(
+    screen({ cursor = 2, name = "Wield an item", keys = "w", scope = "global", picking = true, letter = "b" }),
+    screen({ cursor = 2, name = "Wield an item", keys = "w", scope = "global" })
+  ),
+  "Wield an item, b, 2 of 74.",
+  "While a change is being made the row answers with the letter alone: where the old key worked is not what the next keypress is about"
 )

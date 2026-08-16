@@ -35,6 +35,7 @@ struct seen_screen {
     std::string entry_text;
     std::string entry_column;
     sol::optional<std::string> entry_letter;
+    sol::optional<std::string> entry_scope;
 };
 
 void record( const std::shared_ptr<seen_screen> &out, const sol::table &params )
@@ -56,12 +57,14 @@ void record( const std::shared_ptr<seen_screen> &out, const sol::table &params )
     const auto entry = params["entry"].get<sol::optional<sol::table>>();
     out->has_entry = entry.has_value();
     out->entry_letter = sol::optional<std::string>();
+    out->entry_scope = sol::optional<std::string>();
     if( !entry ) {
         return;
     }
     out->entry_text = ( *entry )["text"].get<std::string>();
     out->entry_column = ( *entry )["column"].get<std::string>();
     out->entry_letter = ( *entry )["letter"].get<sol::optional<std::string>>();
+    out->entry_scope = ( *entry )["scope"].get<sol::optional<std::string>>();
 }
 
 // Names of this file's own, so that what the hook reports is fixed here rather
@@ -318,6 +321,40 @@ TEST_CASE( "lua_hook_on_keybindings_gives_the_letter_only_while_it_picks_a_row",
     at.offset = 0;
     cata::fire_on_keybindings( ctxt, "DEFAULTMODE", rows, at );
     CHECK_FALSE( seen->entry_letter.has_value() );
+}
+
+// Where a key works is drawn in colour on that screen -- green for this screen
+// only, grey for the whole game -- and said nowhere. It is also the difference
+// between the two keys that add one, so a change made without it is a guess.
+TEST_CASE( "lua_hook_on_keybindings_says_where_a_key_works", "[lua]" )
+{
+    sol::state &lua = test_lua_hooks::global_lua_state();
+
+    const auto seen = std::make_shared<seen_screen>();
+    const auto [list, idx] = test_lua_hooks::push_hook( lua, "on_keybindings", 0,
+    [seen]( sol::table params ) {
+        record( seen, params );
+    } );
+    test_lua_hooks::hook_cleanup cleanup{ list, idx };
+
+    input_context ctxt( "BN_ACCESS_TEST" );
+    name_actions( ctxt );
+
+    // An action the game itself binds, so this is asserted against real data
+    // rather than against something the test set up.
+    const std::vector<std::string> real{ "HELP_KEYBINDINGS" };
+    REQUIRE( ctxt.get_desc( "HELP_KEYBINDINGS" ).find( "Unbound" ) == std::string::npos );
+
+    cata::fire_on_keybindings( ctxt, "DEFAULTMODE", real, { 0 } );
+    REQUIRE( seen->has_entry );
+    REQUIRE( seen->entry_scope.has_value() );
+    CHECK( *seen->entry_scope == "global" );
+
+    // Nothing to say about where a key works when there is no key: the second
+    // column already says it is unbound, and a scope beside that is noise.
+    cata::fire_on_keybindings( ctxt, "DEFAULTMODE", rows, { 0 } );
+    REQUIRE( seen->has_entry );
+    CHECK_FALSE( seen->entry_scope.has_value() );
 }
 
 // The hook has to exist as a table before anything can register into it: a name

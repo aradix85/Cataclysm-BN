@@ -21,18 +21,39 @@ local menus = require("./menus")
 
 local keybindings = {}
 
+--- Where a key works, in words rather than in the colour the screen uses.
+---
+--- Green for a key that works only on the screen being described, grey for one
+--- that works across the game -- and colour is nothing at all to a player who
+--- cannot see it. It is also exactly the difference between the two keys that
+--- add a binding, so without this a change cannot be made deliberately.
+---
+--- Absent where the action has no key: the second column already says so.
+local SCOPE = {
+  ["local"] = "this screen only",
+  global = "everywhere",
+}
+
 --- The screen as menus.lua wants it, plus what belongs to this screen alone.
 ---
---- The second column carries the keys bound to the action -- or, while letters
---- are picking rows, the letter that picks this one. Two different answers to
---- "what is this row's key", and only one of them is true at a time: outside a
---- change mode no letter is drawn, and inside one the bound key is not what the
---- next keypress is about.
+--- The second column carries the keys bound to the action and where they work
+--- -- or, while letters are picking rows, the letter that picks this one. Two
+--- different answers to "what is this row's key", and only one of them is true
+--- at a time: outside a change mode no letter is drawn, and inside one the
+--- bound key is not what the next keypress is about.
 --- @param params table
 --- @return table
 keybindings.state = function(params)
   local entry = params.entry
   local picking = params.picking == true
+
+  local column = nil
+  if entry then
+    column = entry.column
+    local scope = entry.scope and SCOPE[entry.scope]
+    if scope then column = column .. ", " .. scope end
+    if picking then column = entry.letter end
+  end
 
   local state = menus.state({
     category = params.category,
@@ -40,10 +61,7 @@ keybindings.state = function(params)
     text = "",
     count = params.count,
     cursor = params.cursor,
-    entry = entry and {
-      text = entry.text,
-      column = picking and entry.letter or entry.column,
-    } or nil,
+    entry = entry and { text = entry.text, column = column } or nil,
   })
 
   state.picking = picking

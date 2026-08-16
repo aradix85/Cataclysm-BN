@@ -95,11 +95,27 @@ void fire_on_keybindings( const input_context &ctxt, const std::string &category
         const std::string &action_id = visible[at.selected];
 
         params["cursor"] = static_cast<int>( at.selected ) + 1;
-        sol::table entry = lua.create_table( 0, 3 );
+        sol::table entry = lua.create_table( 0, 4 );
         entry["text"] = ctxt.get_action_name( action_id );
         // What the screen prints in its second column: the keys bound to this
         // action, or that it is unbound, in the game's own words.
         entry["column"] = ctxt.get_desc( action_id );
+
+        // Whether the key works only on the screen being described or across the
+        // game. The screen says this in colour and nowhere else -- green for the
+        // one, grey for the other -- so without it the difference between the
+        // two keys that add a binding cannot be heard. Only meaningful where
+        // there is a key at all; `get_desc` already says so when there is none.
+        //
+        // Through the bindings rather than through `get_action_attributes`,
+        // which is private to the input manager and reachable only from the
+        // screen itself. Same answer, and no line of ours in an upstream file.
+        bool is_local = false;
+        const std::vector<input_event> &bound = inp_mngr.get_input_for_action( action_id, category,
+                                                &is_local );
+        if( !bound.empty() ) {
+            entry["scope"] = is_local ? "local" : "global";
+        }
 
         // The letter that picks this row, and only while letters pick rows. The
         // screen draws it in that mode and says it nowhere else, so without this
