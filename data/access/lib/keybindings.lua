@@ -34,6 +34,14 @@ local SCOPE = {
   global = "everywhere",
 }
 
+--- Where this row's key works, in words, or nothing when it has no key.
+--- @param key string|nil the scope the hook reported, absent for an unbound action
+--- @return string|nil
+local function scope_words(key)
+  if key == nil then return nil end
+  return SCOPE[key]
+end
+
 --- The screen as menus.lua wants it, plus what belongs to this screen alone.
 ---
 --- The second column carries the keys bound to the action and where they work
@@ -49,10 +57,16 @@ keybindings.state = function(params)
 
   local column = nil
   if entry then
-    column = entry.column
-    local scope = entry.scope and SCOPE[entry.scope]
-    if scope then column = column .. ", " .. scope end
-    if picking then column = entry.letter end
+    if picking then
+      -- The letter alone. Where the old key worked is not what the next
+      -- keypress is about, and a row that answers with both is a row the
+      -- player has to listen past.
+      column = entry.letter
+    else
+      column = entry.column
+      local scope = scope_words(entry.scope)
+      if scope then column = column .. ", " .. scope end
+    end
   end
 
   local state = menus.state({
