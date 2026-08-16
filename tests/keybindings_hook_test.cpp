@@ -26,10 +26,15 @@ struct seen_screen {
     std::string category;
     std::string title;
     int count = 0;
+    bool picking = false;
+    std::string adds_local;
+    std::string adds_global;
+    std::string removes;
     sol::optional<int> cursor;
     bool has_entry = false;
     std::string entry_text;
     std::string entry_column;
+    sol::optional<std::string> entry_letter;
 };
 
 void record( const std::shared_ptr<seen_screen> &out, const sol::table &params )
@@ -38,15 +43,25 @@ void record( const std::shared_ptr<seen_screen> &out, const sol::table &params )
     out->category = params["category"].get<sol::optional<std::string>>().value_or( "" );
     out->title = params["title"].get<sol::optional<std::string>>().value_or( "" );
     out->count = params["count"].get<sol::optional<int>>().value_or( -1 );
+    out->picking = params["picking"].get<sol::optional<bool>>().value_or( false );
     out->cursor = params["cursor"].get<sol::optional<int>>();
+
+    const auto keys = params["keys"].get<sol::optional<sol::table>>();
+    if( keys ) {
+        out->adds_local = ( *keys )["add_local"].get<std::string>();
+        out->adds_global = ( *keys )["add_global"].get<std::string>();
+        out->removes = ( *keys )["remove"].get<std::string>();
+    }
 
     const auto entry = params["entry"].get<sol::optional<sol::table>>();
     out->has_entry = entry.has_value();
+    out->entry_letter = sol::optional<std::string>();
     if( !entry ) {
         return;
     }
     out->entry_text = ( *entry )["text"].get<std::string>();
     out->entry_column = ( *entry )["column"].get<std::string>();
+    out->entry_letter = ( *entry )["letter"].get<sol::optional<std::string>>();
 }
 
 // Names of this file's own, so that what the hook reports is fixed here rather
@@ -165,7 +180,7 @@ TEST_CASE( "lua_hook_on_keybindings_carries_the_screen_and_the_row_in_view", "[l
 
     input_context ctxt( "BN_ACCESS_TEST" );
     name_actions( ctxt );
-    cata::fire_on_keybindings( ctxt, "INVENTORY", rows, 0 );
+    cata::fire_on_keybindings( ctxt, "INVENTORY", rows, { 0 } );
 
     CHECK( seen->calls == 1 );
     // The context being described, not the one the screen itself runs in.
@@ -199,13 +214,13 @@ TEST_CASE( "lua_hook_on_keybindings_reports_the_row_the_selection_points_at", "[
     input_context ctxt( "BN_ACCESS_TEST" );
     name_actions( ctxt );
 
-    cata::fire_on_keybindings( ctxt, "DEFAULTMODE", rows, 1 );
+    cata::fire_on_keybindings( ctxt, "DEFAULTMODE", rows, { 1 } );
     REQUIRE( seen->cursor.has_value() );
     CHECK( *seen->cursor == 2 );
     REQUIRE( seen->has_entry );
     CHECK( seen->entry_text == "Wield an item" );
 
-    cata::fire_on_keybindings( ctxt, "DEFAULTMODE", rows, 2 );
+    cata::fire_on_keybindings( ctxt, "DEFAULTMODE", rows, { 2 } );
     REQUIRE( seen->cursor.has_value() );
     CHECK( *seen->cursor == 3 );
     CHECK( seen->entry_text == "Close the window" );
@@ -229,18 +244,80 @@ TEST_CASE( "lua_hook_on_keybindings_has_no_row_when_the_filter_left_none", "[lua
     input_context ctxt( "BN_ACCESS_TEST" );
     name_actions( ctxt );
 
-    cata::fire_on_keybindings( ctxt, "DEFAULTMODE", {}, 0 );
+    cata::fire_on_keybindings( ctxt, "DEFAULTMODE", {}, { 0 } );
     CHECK( seen->calls == 1 );
     CHECK( seen->count == 0 );
     CHECK_FALSE( seen->cursor.has_value() );
     CHECK_FALSE( seen->has_entry );
 
     // An offset left pointing past the end of a shorter list answers the same.
-    cata::fire_on_keybindings( ctxt, "DEFAULTMODE", rows, 3 );
+    cata::fire_on_keybindings( ctxt, "DEFAULTMODE", rows, { 3 } );
     CHECK( seen->calls == 2 );
     CHECK( seen->count == 3 );
     CHECK_FALSE( seen->cursor.has_value() );
     CHECK_FALSE( seen->has_entry );
+}
+
+// A key is changed on this screen by pressing one of three keys and then the
+// letter of a row -- letters the screen draws only in that mode and names
+// nowhere. Reading the list without them is a list that cannot be used, so the
+// letter comes over while it acts and stays away while it does not.
+TEST_CASE( "lua_hook_on_keybindings_gives_the_letter_only_while_it_picks_a_row", "[lua]" )
+{
+    sol::state &lua = test_lua_hooks::global_lua_state();
+
+    const auto seen = std::make_shared<seen_screen>();
+    const auto [list, idx] = test_lua_hooks::push_hook( lua, "on_keybindings", 0,
+    [seen]( sol::table params ) {
+        record( seen, params );
+    } );
+    test_lua_hooks::hook_cleanup cleanup{ list, idx };
+
+    input_context ctxt( "BN_ACCESS_TEST" );
+    name_actions( ctxt );
+
+    cata::keybindings_screen at;
+    at.selected = 1;
+    at.hotkeys = "abc";
+    at.adds_local = '+';
+    at.adds_global = '=';
+    at.removes = '-';
+
+    // Reading the list: the row's own key, and no letter, because pressing one
+    // would go into the filter rather than choose anything.
+    cata::fire_on_keybindings( ctxt, "DEFAULTMODE", rows, at );
+    CHECK_FALSE( seen->picking );
+    REQUIRE( seen->has_entry );
+    CHECK( seen->entry_column == ctxt.get_desc( "BN_TEST_TWO" ) );
+    CHECK_FALSE( seen->entry_letter.has_value() );
+    // The three keys that start a change are the screen's own, always carried,
+    // since nothing else in the game ever says them.
+    CHECK( seen->adds_local == "+" );
+    CHECK( seen->adds_global == "=" );
+    CHECK( seen->removes == "-" );
+
+    // Changing a key: the second row is picked by the second letter.
+    at.picking = true;
+    cata::fire_on_keybindings( ctxt, "DEFAULTMODE", rows, at );
+    CHECK( seen->picking );
+    REQUIRE( seen->entry_letter.has_value() );
+    CHECK( *seen->entry_letter == "b" );
+
+    // Scrolled down, the letters belong to the window and not to the list, so
+    // the same row is picked by a different letter.
+    at.selected = 2;
+    at.offset = 2;
+    cata::fire_on_keybindings( ctxt, "DEFAULTMODE", rows, at );
+    REQUIRE( seen->entry_letter.has_value() );
+    CHECK( *seen->entry_letter == "a" );
+
+    // A row past the end of the drawn letters has none, and says so by absence
+    // rather than by handing over something that picks another row.
+    at.hotkeys = "a";
+    at.selected = 2;
+    at.offset = 0;
+    cata::fire_on_keybindings( ctxt, "DEFAULTMODE", rows, at );
+    CHECK_FALSE( seen->entry_letter.has_value() );
 }
 
 // The hook has to exist as a table before anything can register into it: a name
@@ -259,5 +336,5 @@ TEST_CASE( "lua_hook_on_keybindings_is_declared_and_idle_when_nothing_listens", 
 
     input_context ctxt( "BN_ACCESS_TEST" );
     name_actions( ctxt );
-    cata::fire_on_keybindings( ctxt, "DEFAULTMODE", rows, 0 );
+    cata::fire_on_keybindings( ctxt, "DEFAULTMODE", rows, { 0 } );
 }

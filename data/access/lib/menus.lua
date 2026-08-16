@@ -62,7 +62,10 @@ end
 ---
 --- The count is not part of what identifies a menu: filtering changes it while
 --- the menu stays the same one, and that change is worth a word of its own.
-local function same_menu(state, previous)
+---
+--- Public because a screen composing this module has to know whether it has
+--- just arrived somewhere: what is said once on opening is said once here too.
+menus.same_menu = function(state, previous)
   if not previous then return false end
   return state.category == previous.category and state.title == previous.title and state.text == previous.text
 end
@@ -148,7 +151,7 @@ end
 menus.utterances = function(state, previous)
   local out = {}
 
-  if previous and same_menu(state, previous) then
+  if previous and menus.same_menu(state, previous) then
     -- The filter moved. How much is left is the answer to typing, and it also
     -- says that a search found nothing without the player having to walk it.
     if state.count ~= previous.count then out[#out + 1] = count_sentence(state.count) end

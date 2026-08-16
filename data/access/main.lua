@@ -28,6 +28,7 @@ local speech = require("./lib/speech")
 local errors = require("./lib/errors")
 local prompts = require("./lib/prompts")
 local menus = require("./lib/menus")
+local keybindings = require("./lib/keybindings")
 local opening = require("./lib/opening")
 local messages = require("./lib/messages")
 local movement = require("./lib/movement")
@@ -182,7 +183,22 @@ game.add_hook("on_uilist", { priority = 100, fn = speak_menu })
 -- that already fits -- so on most screens every arrow key was answered by
 -- silence and no row below the first could be reached. The fork gives it a
 -- selection that the window follows; see src/keybindings_hook.h.
-game.add_hook("on_keybindings", { priority = 100, fn = speak_menu })
+--
+-- The wording is lib/keybindings.lua, which composes the menu's reading model
+-- rather than repeating it. Its state goes into the same variable, because it
+-- is a menu state with two extra fields the menu module ignores.
+game.add_hook("on_keybindings", {
+  priority = 100,
+  fn = function(params)
+    local state = keybindings.state(params)
+    for _, line in ipairs(keybindings.utterances(state, open_menu)) do
+      speech.say(line)
+    end
+    open_menu = state
+    open_prompt = nil
+    open_screen = nil
+  end,
+})
 
 -- The screen the game opens on, which is not a uilist and needs a firing point
 -- of its own. It is the first thing a player meets, the only way into a world,

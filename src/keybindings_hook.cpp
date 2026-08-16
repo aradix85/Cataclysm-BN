@@ -57,7 +57,7 @@ list_position move_selection( list_position at, const int delta, const std::size
 
 void fire_on_keybindings( const input_context &ctxt, const std::string &category,
                           const std::vector<std::string> &visible,
-                          const std::size_t selected )
+                          const keybindings_screen &at )
 {
     // No check for a world's Lua state. This screen opens from the world
     // picker and the load list as readily as from the inventory, and
@@ -76,23 +76,40 @@ void fire_on_keybindings( const input_context &ctxt, const std::string &category
         // game calls it.
         params["title"] = _( "Keybindings" );
         params["count"] = static_cast<int>( visible.size() );
+        params["picking"] = at.picking;
 
-        if( selected >= visible.size() ) {
+        sol::state_view lua( params.lua_state() );
+        sol::table keys = lua.create_table( 0, 3 );
+        keys["add_local"] = std::string( 1, at.adds_local );
+        keys["add_global"] = std::string( 1, at.adds_global );
+        keys["remove"] = std::string( 1, at.removes );
+        params["keys"] = keys;
+
+        if( at.selected >= visible.size() ) {
             // The filter left nothing, or a selection the screen has not yet
             // put back inside the list. Leaving both params unset rather than
             // zeroed means a handler reads "nothing to report" instead of
             // naming a row that is not there.
             return;
         }
-        const std::string &action_id = visible[selected];
+        const std::string &action_id = visible[at.selected];
 
-        params["cursor"] = static_cast<int>( selected ) + 1;
-        sol::state_view lua( params.lua_state() );
-        sol::table entry = lua.create_table( 0, 2 );
+        params["cursor"] = static_cast<int>( at.selected ) + 1;
+        sol::table entry = lua.create_table( 0, 3 );
         entry["text"] = ctxt.get_action_name( action_id );
         // What the screen prints in its second column: the keys bound to this
         // action, or that it is unbound, in the game's own words.
         entry["column"] = ctxt.get_desc( action_id );
+
+        // The letter that picks this row, and only while letters pick rows. The
+        // screen draws it in that mode and says it nowhere else, so without this
+        // the list can be read and not used.
+        if( at.picking && at.selected >= at.offset ) {
+            const std::size_t in_view = at.selected - at.offset;
+            if( in_view < at.hotkeys.size() ) {
+                entry["letter"] = std::string( 1, at.hotkeys[in_view] );
+            }
+        }
         params["entry"] = entry;
     } );
 }

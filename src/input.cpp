@@ -1287,7 +1287,13 @@ action_id input_context::display_menu( const bool permit_execute_action )
     ime_sentry sentry( ime_sentry::keep );
     while( true ) {
         ui_manager::redraw();
-        cata::fire_on_keybindings( *this, category, filtered_registered_actions, selected );
+        cata::fire_on_keybindings( *this, category, filtered_registered_actions, {
+            selected, scroll_offset, hotkeys,
+            static_cast<char>( fallback_keys.at( fallback_action::add_local ) ),
+            static_cast<char>( fallback_keys.at( fallback_action::add_global ) ),
+            static_cast<char>( fallback_keys.at( fallback_action::remove ) ),
+            status != s_show
+        } );
 
         if( status == s_show ) {
             filter_phrase = spopup.query_string( false );

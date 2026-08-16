@@ -45,6 +45,29 @@ list_position move_selection( list_position at, int delta, std::size_t size,
 list_position clamp_selection( list_position at, std::size_t size, std::size_t height );
 
 /**
+ * The keybindings screen as it stands at one firing.
+ *
+ * `hotkeys` are the letters the screen draws down the left of the window, in
+ * view order, so the letter belonging to the selected row is found by taking
+ * it minus `offset`. They only act while `picking` -- outside that mode the
+ * screen draws no letters and a keypress goes into the filter instead.
+ *
+ * `adds_local`, `adds_global` and `removes` are the screen's own three keys for
+ * starting those modes, taken from where it draws its legend rather than
+ * repeated here, so a change upstream cannot leave the layer saying the wrong
+ * key.
+ */
+struct keybindings_screen {
+    std::size_t selected = 0;
+    std::size_t offset = 0;
+    std::string hotkeys;
+    char adds_local = '\0';
+    char adds_global = '\0';
+    char removes = '\0';
+    bool picking = false;
+};
+
+/**
  * Fire the `on_keybindings` hook for the keybindings screen that is about to
  * wait for a key.
  *
@@ -54,14 +77,20 @@ list_position clamp_selection( list_position at, std::size_t size, std::size_t h
  * lets a player set their own keys by ear. It is not a `uilist`, so `on_uilist`
  * never reaches it and it needs a firing point of its own.
  *
- * Params handed to Lua are shaped exactly like `on_uilist`'s -- `category`,
- * `title`, `count`, `cursor`, `entry` with `text` and `column` -- so that the
- * same reading model answers both without a second wording. `category` is the
+ * Params handed to Lua are shaped like `on_uilist`'s -- `category`, `title`,
+ * `count`, `cursor`, `entry` with `text` and `column` -- so that the same
+ * reading model answers both without a second wording. `category` is the
  * context whose keys are listed rather than this screen's own, which is what
  * makes returning from it to the menu underneath read as arriving somewhere new.
  *
- * `selected` is the row the screen's own selection sits on, and that selection
- * exists because this fork added it; see `move_selection`.
+ * Three params are this screen's alone: `picking`, whether letters currently
+ * act on rows; `entry.letter`, the one that picks the selected row, set only
+ * while they do; and `keys`, the three that start those modes. Without them the
+ * screen can be read but not used, since choosing a row means pressing a letter
+ * that is drawn and never otherwise said.
+ *
+ * The rest of rebinding needs nothing here: every question it asks after a row
+ * is picked is a `query_popup`, which the layer already speaks.
  *
  * Fired once per input round, so every keypress the screen ignores arrives here
  * too and the handler must work out what changed.
@@ -72,6 +101,6 @@ list_position clamp_selection( list_position at, std::size_t size, std::size_t h
  */
 void fire_on_keybindings( const input_context &ctxt, const std::string &category,
                           const std::vector<std::string> &visible,
-                          std::size_t selected );
+                          const keybindings_screen &at );
 
 } // namespace cata
