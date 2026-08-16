@@ -1,10 +1,21 @@
 [
   "bn",
+  "exotic_ammo",
   "no_npc_food",
   "novitamins",
   "No_Rail_Stations",
   "no_reviving_zombies",
   "limit_fungal_growth",
   "tablet_ebook",
-  "cbm_slots"
+  "cbm_slots",
+  "aftershock",
+  "crt_expansion",
+  "DinoMod",
+  "civilians",
+  "Arcana",
+  "MagicalNights",
+  "Arcana_aftershock_Patch",
+  "Arcana_Crit_Patch",
+  "Arcana_Dinomod_Patch",
+  "Arcana_MagiclalNights_Patch"
 ]
