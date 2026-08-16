@@ -68,6 +68,7 @@ local function headings_of(state)
       text = state.heading.text,
       column = state.heading.key,
       opens = state.entry ~= nil,
+      opens_word = "submenu",
       enabled = true,
     },
   })

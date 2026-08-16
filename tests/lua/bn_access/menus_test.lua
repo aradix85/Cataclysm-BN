@@ -78,8 +78,8 @@ check.equal(
     }),
     nil
   ),
-  "Actions, 12 entries. / Look, submenu, 3 of 12.",
-  "An entry that descends into another menu is marked only by an ellipsis, which a synthesiser does not say"
+  "Actions, 12 entries. / Look, press enter to open, 3 of 12.",
+  "An entry that descends is marked only by an ellipsis a synthesiser drops, and the key is said because the screen offers no other way in"
 )
 
 -- A menu with a title in the border and no header above the list, which is the
@@ -170,6 +170,25 @@ check.equal(
     }),
     nil
   ),
-  "MAIN MENU, 16 entries. / Options, submenu, 2 of 16.",
+  "MAIN MENU, 16 entries. / Options, press enter to open, 2 of 16.",
   "A caller that knows an entry descends says so, and it reads exactly as an ellipsis would"
+)
+
+-- The gesture differs per screen, so the words do. The opening screen enters a
+-- heading with the down arrow, and naming RETURN there would be a wrong
+-- instruction rather than a missing one.
+check.equal(
+  say(
+    menus.state({
+      category = "MAIN_MENU",
+      title = "",
+      text = "Main menu",
+      count = 8,
+      cursor = 3,
+      entry = { text = "Load", column = "a", opens = true, opens_word = "submenu", enabled = true },
+    }),
+    nil
+  ),
+  "Main menu, 8 entries. / Load, submenu, a, 3 of 8.",
+  "A screen that opens an entry with something other than RETURN supplies its own word for it"
 )

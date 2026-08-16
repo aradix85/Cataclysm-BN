@@ -50,6 +50,13 @@ menus.state = function(params)
           -- with a trailing ellipsis and nothing else; a caller that knows
           -- without being told says so here.
           opens = entry.opens == true,
+          -- What is said for that, which names the gesture rather than the
+          -- shape: a uilist descends on RETURN, while the opening screen's
+          -- headings are entered with the down arrow and teach that by
+          -- themselves, since arriving on one already reads the first line
+          -- under it. Naming the wrong key is worse than naming none, so the
+          -- screen composing this module decides the words.
+          opens_word = entry.opens_word or "press enter to open",
           -- Absent means enabled: the game sets this on every entry, and a test
           -- that leaves it out is describing an ordinary one.
           enabled = entry.enabled ~= false,
@@ -121,7 +128,7 @@ local function entry_line(state)
   -- them, but a menu that highlights disabled entries can land on one, and a
   -- keypress that answers with silence is indistinguishable from a dead key.
   parts[#parts + 1] = text.is_speakable(name) and name or "Blank"
-  if opens then parts[#parts + 1] = "submenu" end
+  if opens then parts[#parts + 1] = entry.opens_word end
   if text.is_speakable(entry.column) then parts[#parts + 1] = entry.column end
   if state.cursor then parts[#parts + 1] = state.cursor .. " of " .. state.count end
   if not entry.enabled then parts[#parts + 1] = "unavailable" end

@@ -12,9 +12,7 @@
 local keybindings = require("../../../data/access/lib/keybindings")
 local menus = require("../../../data/access/lib/menus")
 
-local function say(state, previous)
-  return table.concat(keybindings.utterances(state, previous), " / ")
-end
+local function say(state, previous) return table.concat(keybindings.utterances(state, previous), " / ") end
 
 local KEYS = { add_local = "+", add_global = "=", remove = "-" }
 
@@ -30,9 +28,7 @@ local function screen(opts)
     cursor = opts.cursor,
     picking = opts.picking,
     keys = KEYS,
-    entry = opts.name
-        and { text = opts.name, column = opts.keys, letter = opts.letter, scope = opts.scope }
-      or nil,
+    entry = opts.name and { text = opts.name, column = opts.keys, letter = opts.letter, scope = opts.scope } or nil,
   })
 end
 
