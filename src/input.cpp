@@ -23,6 +23,7 @@
 #include "help.h"
 #include "ime.h"
 #include "json.h"
+#include "keybindings_hook.h"
 #include "options.h"
 #include "output.h"
 #include "path_info.h"
@@ -1267,6 +1268,7 @@ action_id input_context::display_menu( const bool permit_execute_action )
     ime_sentry sentry( ime_sentry::keep );
     while( true ) {
         ui_manager::redraw();
+        cata::fire_on_keybindings( *this, category, filtered_registered_actions, scroll_offset );
 
         if( status == s_show ) {
             filter_phrase = spopup.query_string( false );

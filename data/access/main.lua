@@ -154,18 +154,34 @@ game.add_hook("on_query_popup", {
 -- RETURN, the item action and examine menus, the vehicle controls. None of them
 -- is followable by any other means -- upstream's cursor support was never
 -- ported into uilist -- so this hook is the only way any of them is playable.
-game.add_hook("on_uilist", {
-  priority = 100,
-  fn = function(params)
-    local state = menus.state(params)
-    for _, line in ipairs(menus.utterances(state, open_menu)) do
-      speech.say(line)
-    end
-    open_menu = state
-    open_prompt = nil
-    open_screen = nil
-  end,
-})
+local function speak_menu(params)
+  local state = menus.state(params)
+  for _, line in ipairs(menus.utterances(state, open_menu)) do
+    speech.say(line)
+  end
+  open_menu = state
+  open_prompt = nil
+  open_screen = nil
+end
+
+game.add_hook("on_uilist", { priority = 100, fn = speak_menu })
+
+-- The game's own key list, which every screen but one opens on the question
+-- mark, and which is also where a key is rebound. It is not a uilist and needs
+-- a firing point of its own, but it is a titled list with a position in it, so
+-- it is read by the same model rather than a second one: the C++ side hands it
+-- over in the same shape and this is the same handler.
+--
+-- Deliberately sharing the menu's state and not a variable of its own. Whichever
+-- of the two is on screen holds the keyboard, so they cannot both be open, and
+-- closing this screen leaves the menu underneath to announce itself again --
+-- which is right, because arriving back somewhere is arriving.
+--
+-- What it cannot do: this screen scrolls a window rather than moving a cursor,
+-- and refuses to scroll a list that already fits, so the entries below the
+-- first are out of reach there. Typing filters the list, and that is the way to
+-- them.
+game.add_hook("on_keybindings", { priority = 100, fn = speak_menu })
 
 -- The screen the game opens on, which is not a uilist and needs a firing point
 -- of its own. It is the first thing a player meets, the only way into a world,

@@ -677,6 +677,10 @@ bool main_menu::opening_screen()
     ctxt.register_action( "PAGE_DOWN" );
     ctxt.register_action( "CONFIRM" );
     ctxt.register_action( "QUIT" );
+    // The one screen in the game that never offered its own key list. Every
+    // other context registers this, and without it the first screen a player
+    // meets is the only one that cannot say how it is worked.
+    ctxt.register_action( "HELP_KEYBINDINGS" );
 
     // for the menu shortcuts
     ctxt.register_action( "ANY_INPUT" );
