@@ -38,7 +38,12 @@ auto boot_state() -> lua_state *;
 /// Load the layer's scripts into a state that already has the game's bindings
 /// and hook tables. Reports through `debugmsg` and never throws: a fault here
 /// is the layer failing, and the game has to keep running.
-void load_into( lua_state &state );
+///
+/// `at_boot` says which of the layer's two lives this state is. It is passed in
+/// rather than worked out from the state's identity so that both lives can be
+/// built by a test: the difference decides what is said as the layer comes up
+/// and which hooks belong to a state that outlives a world.
+void load_into( lua_state &state, bool at_boot );
 
 } // namespace access
 

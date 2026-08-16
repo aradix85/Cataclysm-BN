@@ -212,6 +212,7 @@
 #include "wcwidth.h"
 #include "weather.h"
 #include "world_type.h"
+#include "world_loading_hook.h"
 #include "worldfactory.h"
 #include "location_vector.h"
 #include "monfaction.h"
@@ -679,6 +680,12 @@ void game::reenter_fullscreen()
 void game::setup( bool load_world_modfiles )
 {
     loading_ui ui( true );
+
+    // Announce the wait before starting it: everything below reads the mod list's
+    // JSON and generates the map, which says nothing for as long as it takes.
+    cata::run_on_world_loading_hook( get_active_world() != nullptr
+                                     ? get_active_world()->info->world_name
+                                     : std::string(), load_world_modfiles );
 
     // Clear all dimension overmapbuffers before reloading JSON data.
     // Each overmapbuffer holds raw `settings` pointers into region_settings_map,

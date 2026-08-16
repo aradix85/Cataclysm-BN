@@ -67,6 +67,7 @@ constexpr auto hook_names = std::array
     "on_uilist",
     "on_weather_changed",
     "on_weather_updated",
+    "on_world_loading",
 };
 
 void define_hooks( lua_state &state )

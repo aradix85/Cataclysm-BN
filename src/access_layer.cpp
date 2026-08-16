@@ -39,12 +39,12 @@ lua_state *boot = nullptr;
 
 } // namespace
 
-void load_into( lua_state &state )
+void load_into( lua_state &state, bool at_boot )
 {
     // Which of the two lives this is. The layer says different things: before a
     // world there is nothing loading and nothing to report about one, and the
     // only useful word is that the layer itself is there.
-    state.lua.globals()["access_is_boot"] = ( &state == boot );
+    state.lua.globals()["access_is_boot"] = at_boot;
 
     try {
         run_lua_script( state.lua, main_script() );
@@ -70,7 +70,7 @@ void start()
     init_global_state_tables( *boot, std::vector<mod_id> {} );
     define_hooks( *boot );
 
-    load_into( *boot );
+    load_into( *boot, true );
 }
 
 auto boot_state() -> lua_state *

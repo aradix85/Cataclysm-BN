@@ -939,7 +939,7 @@ static void load_and_finalize_packs( loading_ui &ui, const std::string &msg,
     init::load_main_lua_scripts( *loader.lua, packs );
     // The accessibility layer is not a mod and is not in the mod list, so the
     // fork loads it into every state the mod system builds. See src/access_layer.h.
-    cata::access::load_into( *loader.lua );
+    cata::access::load_into( *loader.lua, false );
     cata::clear_mod_being_loaded( *loader.lua );
     // Update cached hook-presence flag so worker threads know whether to queue
     // deferred mapgen postprocess hooks (avoids lock + allocation overhead per omt

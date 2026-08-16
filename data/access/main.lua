@@ -51,12 +51,19 @@ local at_boot = access_is_boot == true
 
 if at_boot then
   speech.say("Accessibility on.")
-else
-  -- This file runs while the world is being built, which takes about twenty
-  -- seconds of data loading and mapgen and says nothing at all. One word here
-  -- and one when the world is ready turn that silence into a bracket: this is
-  -- the start of the wait, "ready" is the end of it, and neither is an error.
-  speech.say("Loading.")
+
+  -- The wait for a world begins the moment the player picks one, and this file
+  -- is not read again until the far end of it: the state a world gets is built
+  -- by the very load that has to be announced. So the word that opens the wait
+  -- comes from here, where something is already alive to say it, and the word
+  -- that closes it comes from inside the world. Between the two, silence is the
+  -- wait and not a fault.
+  game.add_hook("on_world_loading", {
+    priority = 100,
+    fn = function()
+      speech.say("Loading.")
+    end,
+  })
 end
 
 -- The game's own error report, first of everything, because it is how a fault
