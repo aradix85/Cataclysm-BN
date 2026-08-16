@@ -51,7 +51,7 @@ jobs:
           { "name": "Linux Tiles", "platform": "linux", "artifact": "linux-tiles-x64", "os": "ubuntu-latest", "tiles": true, "sound": true, "ext": "tar.gz", "content-type": "application/gzip", "upload-artifact": true }
         ]
       download-translations: false
-      bundle-tilesets: true
+      bundle-tilesets: false
       bundle-registry-mods: true
       package-artifacts: true
       run-tests: true
@@ -60,10 +60,22 @@ jobs:
       upload-artifacts: true
     secrets: inherit
 
-  # Note on bundle-registry-mods: it stays on even when the mods are not needed.
-  # The action that sets up Deno fails in its cleanup step when nothing ever used
-  # Deno during the job, which marks an otherwise healthy build as failed.
-  # Bundling the mods always keeps that quiet.
+  # Two notes on what the release carries, because both flags above look like
+  # things that could simply be turned off, and one of them cannot.
+  #
+  # bundle-registry-mods stays on. On Windows this step is the only thing in the
+  # job that ever runs Deno, and the action that sets Deno up fails in its own
+  # cleanup when nothing used it, which marks an otherwise healthy build as
+  # failed. What it bundles is decided by data/mods/external.json, not by this
+  # flag: the step runs the bundler either way, and running it is what keeps the
+  # cleanup quiet, so the list can be as short as the fork wants. It holds one
+  # entry, the soundpack, which is the only registry package a player without
+  # sight has any use for. The rest -- a tileset, a Korean squirrel mod,
+  # Cataclysm++ -- were dead weight in a download aimed at blind players.
+  #
+  # bundle-tilesets is off. It downloaded two CDDA tilesets into the package,
+  # and the clone already carries eleven of its own, so the only thing turning
+  # it off costs is package size and one network dependency in every build.
 
   # The EmmyLua analyser, judged rather than merely run.
   #
