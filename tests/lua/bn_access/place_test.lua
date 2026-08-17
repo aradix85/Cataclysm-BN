@@ -89,3 +89,21 @@ check.equal(
   "Field. / Space: north 2, east 2, south 2, west 2. / 1 enemy. zombie, 3 north.",
   "Where she is comes first and what is in it after, and the empty word is not owed once something was found"
 )
+
+check.equal(
+  say(surroundings.overview({
+    area = "subway station",
+    ways_up = { { name = "stairs", dx = -20, dy = 5 } },
+  })),
+  "Subway station. / 1 way up. stairs, 20 west.",
+  "Stairs are said as a way out of the place itself, with which way they go, since that is what makes them worth crossing a room for"
+)
+
+check.equal(
+  say(surroundings.overview({
+    landmarks = { { name = "wooden door", dx = 3, dy = 0 } },
+    ways_down = { { name = "stairs", dx = 0, dy = -8 }, { name = "manhole", dx = 9, dy = 9 } },
+  })),
+  "1 way out. wooden door, 3 east. / 2 ways down. Nearest: stairs, 8 north.",
+  "Doors and stairs are never one group: one leads to the next room and the other out of this place"
+)

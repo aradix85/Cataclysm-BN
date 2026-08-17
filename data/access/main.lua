@@ -101,6 +101,10 @@ local LANDMARK_RANGE = 8
 -- How far the room is measured in each direction. A room is ten squares across at
 -- most, so beyond this the answer stops being about the room she is standing in.
 local WALL_RANGE = 12
+-- How far stairs are looked for. Further than a door, because a staircase is worth
+-- crossing a room for and is the only thing nearby that leads out of this place
+-- altogether.
+local STAIR_RANGE = 24
 
 gapi.register_default_mode_action("bn_access_surroundings", "Accessibility: what is around me")
 gapi.register_default_mode_action("bn_access_zone", "Accessibility: where am I")
@@ -528,6 +532,7 @@ local function collect()
   local function offset(pos) return pos.x - at.x, pos.y - at.y end
 
   local enemies, others, landmarks = {}, {}, {}
+  local ways_up, ways_down = {}, {}
 
   local hostile_at = {}
   for _, critter in ipairs(you:get_hostile_creatures(RANGE)) do
@@ -555,6 +560,19 @@ local function collect()
     end
   end
 
+  -- Stairs are the other way out, and the one that leads somewhere else entirely:
+  -- a floor up or down is usually another place with another name. Looked for
+  -- further away than a door, because a staircase is worth walking to and a door
+  -- twenty squares off belongs to a room she is not in.
+  for _, pos in ipairs(here:points_in_radius(at, STAIR_RANGE)) do
+    local dx, dy = offset(pos)
+    if here:has_ter_flag_at("GOES_UP", pos) then
+      ways_up[#ways_up + 1] = { name = here:get_ter_at(pos):obj():name(), dx = dx, dy = dy }
+    elseif here:has_ter_flag_at("GOES_DOWN", pos) then
+      ways_down[#ways_down + 1] = { name = here:get_ter_at(pos):obj():name(), dx = dx, dy = dy }
+    end
+  end
+
   return {
     area = perception.area_name_at(at),
     -- Which way the room lets her walk, and how far. Four directions and not eight:
@@ -568,6 +586,8 @@ local function collect()
     enemies = enemies,
     others = others,
     landmarks = landmarks,
+    ways_up = ways_up,
+    ways_down = ways_down,
   }
 end
 

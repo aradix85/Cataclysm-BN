@@ -107,6 +107,16 @@ surroundings.overview = function(around)
   local landmarks = group_line(around.landmarks or {}, "way out", "ways out")
   if landmarks then out[#out + 1] = landmarks end
 
+  -- Stairs last, and apart from the doors: a door leads to the next room and a
+  -- staircase leads out of this place entirely, usually into somewhere with
+  -- another name. Which way they go is the whole of what makes them worth
+  -- walking to, so up and down are never one group.
+  local up = group_line(around.ways_up or {}, "way up", "ways up")
+  if up then out[#out + 1] = up end
+
+  local down = group_line(around.ways_down or {}, "way down", "ways down")
+  if down then out[#out + 1] = down end
+
   -- Where she is is not an answer to "what is around me", so the empty word is
   -- still owed when nothing else was found.
   local placed = (area ~= "" and 1 or 0) + (reach and 1 or 0)
