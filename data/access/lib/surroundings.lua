@@ -80,18 +80,27 @@ local function reach_line(reach)
   return "Space: " .. table.concat(parts, ", ") .. "."
 end
 
---- What to say about the surroundings.
+--- How far the room goes, said before the list of what is in it.
 ---
---- Answering "nothing nearby" rather than staying silent is deliberate: P5 is
---- about not volunteering emptiness, and this was asked for. A silent answer to
---- a keypress cannot be told apart from a key that never arrived.
+--- Everything else about the surroundings is a list now -- enemies, creatures, the
+--- ways out -- because a list can be walked and a sentence goes past once. This
+--- stays a sentence: it is not four findings but one frame, and a frame has to
+--- arrive whole and in the same order every time.
+--- @param around table { reach = { north = { steps, blocked, unknown }, ... } }
+--- @return string[]
+surroundings.space = function(around)
+  local line = reach_line(around.reach)
+  if not line then return {} end
+  return { line }
+end
+
+--- What to say about the surroundings, as sentences.
 ---
---- The area comes first because it is the largest thing true of where she is
---- standing, and because it is the answer to a question that otherwise costs a
---- trip to the overmap and back: the game names the region a square belongs to
---- and never says it out loud anywhere in play. The room's reach follows it, since
---- the two together are where she is; everything after them is what is in it.
---- @param around table { area, reach, enemies, others, landmarks }
+--- Kept for the cases where a list would be too much machinery for the answer, and
+--- because it is what the groups' wording is asserted through: grouped by kind and
+--- never in map order (P4), enemies first, one utterance per group (F1), name first
+--- within it (P2).
+--- @param around table { area, reach, enemies, others, landmarks, ways_up, ways_down }
 --- @return string[]
 surroundings.overview = function(around)
   local out = {}

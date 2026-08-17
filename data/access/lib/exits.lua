@@ -25,7 +25,8 @@ local exits = {}
 
 -- What each kind is called when it is said. The name of the terrain says what it
 -- is -- "wooden door", "stairs" -- and this says what it does, which is the part
--- that decides whether it is worth crossing a room for.
+-- that decides whether it is worth crossing a room for. A creature needs no such
+-- word: what it is is the whole of what matters about it.
 local KINDS = {
   up = "up",
   down = "down",
@@ -46,19 +47,18 @@ local function entry_of(row)
 end
 
 --- The screen as menus.lua wants it.
---- @param list table[] rows as perception.exits_in_zone returns them
+--- @param list table[] rows of { name, kind, dx, dy }
 --- @param cursor integer|nil the 1-based row the selection is on
---- @param place string|nil the name of the place these are the ways out of
+--- @param title string|nil what this list is of, said once on opening
 --- @return table
-exits.state = function(list, cursor, place)
+exits.state = function(list, cursor, title)
   local rows = list or {}
   local row = cursor and rows[cursor] or nil
-  local title = place and place ~= "" and place or "Here"
-  title = title:sub(1, 1):upper() .. title:sub(2)
+  local heading = title and title ~= "" and title or "Here"
 
   return menus.state({
     category = "BN_ACCESS_EXITS",
-    title = title .. ", ways out",
+    title = heading,
     text = "",
     count = #rows,
     cursor = row and cursor or nil,

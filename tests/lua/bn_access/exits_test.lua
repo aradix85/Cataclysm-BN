@@ -19,37 +19,49 @@ local three = {
 }
 
 check.equal(
-  say(exits.state(three, 1, "subway station"), nil),
+  say(exits.state(three, 1, "Subway station, ways out"), nil),
   "Subway station, ways out, 3 entries. / wooden door, 3 east, 1 of 3.",
   "Opening names the place and how many ways out it knows of, then the nearest one and which way to walk"
 )
 
 check.equal(
-  say(exits.state(three, 2, "subway station"), exits.state(three, 1, "subway station")),
+  say(exits.state(three, 2, "Subway station, ways out"), exits.state(three, 1, "Subway station, ways out")),
   "stairs up, 8 northwest, 2 of 3.",
   "Stepping down says the row alone, and a staircase says which way it goes -- that is what decides whether to cross a room for it"
 )
 
 check.equal(
-  say(exits.state(three, 3, "subway station"), exits.state(three, 2, "subway station")),
+  say(exits.state(three, 3, "Subway station, ways out"), exits.state(three, 2, "Subway station, ways out")),
   "manhole cover down, 12 south, 3 of 3.",
   "The position in the list says how much is left, so walking off the end is hearable rather than silent"
 )
 
 check.equal(
-  say(exits.state(three, 1, "subway station"), exits.state(three, 1, "subway station")),
+  say(exits.state(three, 1, "Subway station, ways out"), exits.state(three, 1, "Subway station, ways out")),
   "",
   "A firing that changed nothing says nothing, which is every key the screen ignored"
 )
 
 check.equal(
-  say(exits.state({}, nil, "forest"), nil),
+  say(exits.state({}, nil, "Forest, ways out"), nil),
   "Forest, ways out, no entries.",
   "A place with no known way out says so, which is the answer that sends her to go and look"
 )
 
 check.equal(
-  say(exits.state({ { name = "gate", kind = "door", dx = 0, dy = 0 } }, 1, ""), nil),
-  "Here, ways out, 1 entry. / gate, here, 1 of 1.",
-  "A place the game names with nothing still answers, and a way out underfoot says so rather than giving a bearing of zero"
+  say(exits.state({ { name = "gate", kind = "door", dx = 0, dy = 0 } }, 1, nil), nil),
+  "Here, 1 entry. / gate, here, 1 of 1.",
+  "A list opened without a name still answers, and a way out underfoot says so rather than giving a bearing of zero"
+)
+
+check.equal(
+  say(
+    exits.state({
+      { name = "zombie", kind = "enemy", dx = 0, dy = -3 },
+      { name = "wooden door", kind = "door", dx = 5, dy = 0 },
+    }, 1, "Nearby"),
+    nil
+  ),
+  "Nearby, 2 entries. / zombie, 3 north, 1 of 2.",
+  "The same list reads what is near her too, and a creature carries no extra word: what it is is the whole of it"
 )

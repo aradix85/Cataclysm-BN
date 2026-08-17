@@ -616,13 +616,11 @@ end
 -- selection and nothing else reaches the world, so no step is taken and no turn
 -- passes while she reads. It ends on escape or on any key it does not know, so
 -- there is no way to be stuck in it.
-local function browse_exits(place)
-  local list = perception.exits_in_zone()
-
+local function browse(list, title)
   -- Nothing to walk through is said once and left, rather than opening a screen
   -- with one row in it saying there are none.
   if #list == 0 then
-    for _, line in ipairs(exits.utterances(exits.state(list, nil, place), nil)) do
+    for _, line in ipairs(exits.utterances(exits.state(list, nil, title), nil)) do
       speech.say(line)
     end
     return
@@ -635,7 +633,7 @@ local function browse_exits(place)
   ctxt:register_action("HELP_KEYBINDINGS")
 
   local cursor = 1
-  local state = exits.state(list, cursor, place)
+  local state = exits.state(list, cursor, title)
   local previous = nil
 
   while true do
@@ -652,8 +650,37 @@ local function browse_exits(place)
     elseif action ~= "HELP_KEYBINDINGS" then
       return
     end
-    state = exits.state(list, cursor, place)
+    state = exits.state(list, cursor, title)
   end
+end
+
+-- What is near her, as rows to walk through rather than as one sentence per group.
+--
+-- The order is P4's and is the reason this is not sorted by distance alone: enemies
+-- first because they are the only thing that can kill her this turn, then the rest
+-- of what moves, then the ways out. Within each, nearest first.
+local function nearby_rows(around)
+  local rows = {}
+
+  local function add(list, kind)
+    local sorted = {}
+    for _, item in ipairs(list or {}) do
+      sorted[#sorted + 1] = item
+    end
+    table.sort(sorted, function(a, b)
+      return math.max(math.abs(a.dx), math.abs(a.dy)) < math.max(math.abs(b.dx), math.abs(b.dy))
+    end)
+    for _, item in ipairs(sorted) do
+      rows[#rows + 1] = { name = item.name, kind = kind, dx = item.dx, dy = item.dy }
+    end
+  end
+
+  add(around.enemies, "enemy")
+  add(around.others, "creature")
+  add(around.landmarks, "door")
+  add(around.ways_up, "up")
+  add(around.ways_down, "down")
+  return rows
 end
 
 -- An action in the default mode context can only arrive while no popup, no menu
@@ -666,10 +693,17 @@ game.add_hook("on_action", {
     open_menu = nil
     open_screen = nil
 
+    -- What is within reach of her, asked over and over while walking. The place and
+    -- the space around her are one sentence each, because they are not a list; what
+    -- is in that space is a list, so it is walked rather than run past once.
     if params.action == "bn_access_surroundings" then
-      for _, line in ipairs(surroundings.overview(collect())) do
+      local around = collect()
+      local area = around.area or ""
+      if area ~= "" then speech.say(area:sub(1, 1):upper() .. area:sub(2) .. ".") end
+      for _, line in ipairs(surroundings.space(around)) do
         speech.say(line)
       end
+      browse(nearby_rows(around), "Nearby")
       return false
     end
 
@@ -682,7 +716,9 @@ game.add_hook("on_action", {
       for _, line in ipairs(zone.utterances(zone.state(report))) do
         speech.say(line)
       end
-      browse_exits(report.name)
+
+      local place = report.name ~= "" and report.name or "Here"
+      browse(perception.exits_in_zone(), place:sub(1, 1):upper() .. place:sub(2) .. ", ways out")
       return false
     end
   end,
