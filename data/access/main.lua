@@ -109,6 +109,7 @@ local STAIR_RANGE = 24
 
 gapi.register_default_mode_action("bn_access_surroundings", "Accessibility: what is around me")
 gapi.register_default_mode_action("bn_access_zone", "Accessibility: where am I")
+gapi.register_default_mode_action("bn_access_places", "Accessibility: what places do I know")
 
 -- The world is ready and the game is about to read a key. A new game reaches
 -- this through on_game_started and a loaded save through on_game_load, and a
@@ -741,6 +742,19 @@ game.add_hook("on_action", {
 
       local place = report.name ~= "" and report.name or "Here"
       browse(perception.exits_in_zone(), place:sub(1, 1):upper() .. place:sub(2) .. ", ways out")
+      return false
+    end
+
+    -- What kinds of place she knows of out there, which is the game's own search
+    -- turned around: that one needs a name typed, and a name cannot be typed by
+    -- someone who has never been told the place exists. The rows are region tiles
+    -- rather than squares and say so.
+    if params.action == "bn_access_places" then
+      local rows = {}
+      for _, row in ipairs(perception.known_places()) do
+        rows[#rows + 1] = { name = row.name, count = row.count, dx = row.dx, dy = row.dy, tiles = true }
+      end
+      browse(rows, "Known places")
       return false
     end
   end,

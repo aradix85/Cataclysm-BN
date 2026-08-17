@@ -6,10 +6,13 @@
 #include "game_constants.h"
 #include "map.h"
 #include "map_memory.h"
+#include "overmap.h"
+#include "overmapbuffer.h"
 #include "mapdata.h"
 
 #include <algorithm>
 #include <cstdlib>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -23,6 +26,11 @@ namespace
 // about this place. Four is two full screens' worth and larger than all but the
 // biggest buildings; past that a name repeating is a landscape rather than a place.
 constexpr int max_tiles = 4;
+
+// How far the known-places answer looks, in region tiles. One region block, which
+// is the reach the game's own search has: the two answers are about the same stock
+// or they disagree about a world she cannot check by looking.
+constexpr int search_radius = OMAPX;
 
 // How far the same name runs from a starting tile, in tiles, along one direction.
 int run_of( const tripoint_abs_omt &from, const std::string &name, const int dx, const int dy )
@@ -153,6 +161,56 @@ std::vector<zone_exit> exits_in_zone()
     // Nearest first, because that is the order she would walk them in, and diagonal
     // distance the way the game counts it rather than as a straight line.
     std::ranges::sort( out, []( const zone_exit & a, const zone_exit & b ) {
+        return std::max( std::abs( a.dx ), std::abs( a.dy ) ) <
+               std::max( std::abs( b.dx ), std::abs( b.dy ) );
+    } );
+    return out;
+}
+
+std::vector<known_place> known_places()
+{
+    const tripoint_abs_omt centre = get_avatar().abs_omt_pos();
+    overmapbuffer &buffer = ACTIVE_OVERMAP_BUFFER;
+
+    // The same reach the game's own search has, so that the two answers are about
+    // the same stock: one region block in every direction, and seen tiles only.
+    std::map<std::string, known_place> found;
+    for( int dy = -search_radius; dy <= search_radius; ++dy ) {
+        for( int dx = -search_radius; dx <= search_radius; ++dx ) {
+            const tripoint_abs_omt p( centre.x() + dx, centre.y() + dy, centre.z() );
+            if( !buffer.seen( p ) ) {
+                continue;
+            }
+
+            const std::string name = area_name_at( p );
+            if( name.empty() ) {
+                continue;
+            }
+
+            const int away = std::max( std::abs( dx ), std::abs( dy ) );
+            auto it = found.find( name );
+            if( it == found.end() ) {
+                found.emplace( name, known_place{ name, 1, dx, dy } );
+                continue;
+            }
+
+            ++it->second.count;
+            if( away < std::max( std::abs( it->second.dx ), std::abs( it->second.dy ) ) ) {
+                it->second.dx = dx;
+                it->second.dy = dy;
+            }
+        }
+    }
+
+    std::vector<known_place> out;
+    out.reserve( found.size() );
+    for( const auto &entry : found ) {
+        out.push_back( entry.second );
+    }
+
+    // Nearest first: the question behind this is where to go next, and the answer
+    // to that is ordered by how far it is rather than by how much of it there is.
+    std::ranges::sort( out, []( const known_place & a, const known_place & b ) {
         return std::max( std::abs( a.dx ), std::abs( a.dy ) ) <
                std::max( std::abs( b.dx ), std::abs( b.dy ) );
     } );

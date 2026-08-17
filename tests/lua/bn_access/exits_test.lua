@@ -65,3 +65,21 @@ check.equal(
   "Nearby, 2 entries. / zombie, 3 north, 1 of 2.",
   "The same list reads what is near her too, and a creature carries no extra word: what it is is the whole of it"
 )
+
+check.equal(
+  say(
+    exits.state({
+      { name = "house", count = 12, dx = 2, dy = -2, tiles = true },
+      { name = "subway station", count = 1, dx = 0, dy = 5, tiles = true },
+    }, 1, "Known places"),
+    nil
+  ),
+  "Known places, 2 entries. / house, 12, nearest 2 tiles northeast, 1 of 2.",
+  "A kind of place says how many there are and where the nearest lies, in tiles rather than steps"
+)
+
+check.equal(
+  say(exits.state({ { name = "subway station", count = 1, dx = 0, dy = 5, tiles = true } }, 1, "Known places"), nil),
+  "Known places, 1 entry. / subway station, 5 tiles south, 1 of 1.",
+  "One of a kind carries no count, since the number would say nothing the row does not"
+)

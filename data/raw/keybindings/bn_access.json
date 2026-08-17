@@ -12,5 +12,12 @@
     "category": "DEFAULTMODE",
     "name": "Accessibility: where am I",
     "bindings": [ { "input_method": "keyboard", "key": "F10" } ]
+  },
+  {
+    "id": "bn_access_places",
+    "type": "keybinding",
+    "category": "DEFAULTMODE",
+    "name": "Accessibility: what places do I know",
+    "bindings": [ { "input_method": "keyboard", "key": "F11" } ]
   }
 ]

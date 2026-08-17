@@ -188,6 +188,27 @@ void reg_perception( sol::state &lua )
         return out;
     } );
 
+    DOC( "What kinds of place she knows about around her, nearest first: each a table with "
+         "`name`, `count` and `dx`/`dy` to the nearest one, in region tiles. Counts only tiles "
+         "the overmap marks as seen, and looks as far as the game's own search does. This is "
+         "that search inverted -- searching needs a name typed, and a name cannot be typed by "
+         "someone who has never been told the place exists." );
+    luna::set_fx( lib, "known_places", []( sol::this_state s ) -> sol::table {
+        const std::vector<cata::access::known_place> places = cata::access::known_places();
+
+        sol::state_view lua( s );
+        sol::table out = lua.create_table( static_cast<int>( places.size() ), 0 );
+        for( size_t i = 0; i < places.size(); ++i ) {
+            sol::table row = lua.create_table( 0, 4 );
+            row["name"] = places[i].name;
+            row["count"] = places[i].count;
+            row["dx"] = places[i].dx;
+            row["dy"] = places[i].dy;
+            out[i + 1] = row;
+        }
+        return out;
+    } );
+
     luna::finalize_lib( lib );
 }
 

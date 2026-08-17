@@ -32,18 +32,30 @@ local KINDS = {
   down = "down",
 }
 
---- Where an exit is, relative to her. Never a coordinate (P3).
+--- Where a row is, relative to her. Never a coordinate (P3).
+---
+--- A row measured in region tiles says so, because one of those is a walk across a
+--- screen and the same number in squares is a few seconds: the two scales read
+--- alike and mean nothing alike.
 local function place_words(row)
   local flat = bearing.describe(row.dx or 0, row.dy or 0)
-  return flat or "here"
+  if not flat then return "here" end
+  if row.tiles then return flat:gsub("^(%d+)", "%1 tiles") end
+  return flat
 end
 
 --- One row as the reading model wants it: what it is and which way it goes in the
 --- name, where it is in the column the model already speaks beside a name.
+---
+--- A row standing for several of the same thing says how many, since the answer to
+--- "what is out there" is as much how much of it there is as where the nearest one
+--- lies.
 local function entry_of(row)
   local kind = KINDS[row.kind]
   local name = row.name or ""
-  return { text = kind and (name .. " " .. kind) or name, column = place_words(row) }
+  local where = place_words(row)
+  if row.count and row.count > 1 then where = string.format("%d, nearest %s", row.count, where) end
+  return { text = kind and (name .. " " .. kind) or name, column = where }
 end
 
 --- The screen as menus.lua wants it.

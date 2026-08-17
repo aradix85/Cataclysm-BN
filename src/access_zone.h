@@ -72,4 +72,29 @@ struct zone_exit {
  */
 std::vector<zone_exit> exits_in_zone();
 
+/**
+ * One kind of place she knows of, with how many of them there are and where the
+ * nearest one lies.
+ *
+ * The offsets are in region tiles, not squares: this is the scale the overmap is
+ * read at, and one tile is a walk across a screen.
+ */
+struct known_place {
+    std::string name;
+    int count = 0;
+    int dx = 0;
+    int dy = 0;
+};
+
+/**
+ * What kinds of place she knows about around her, most nearly first.
+ *
+ * The inversion of the game's own search, and the reason for it: searching means
+ * typing a name, and a name cannot be typed by someone who has never been told it
+ * exists. This answers the question the search cannot -- what is out there at all
+ * -- from exactly the same stock, since it counts only tiles the overmap marks as
+ * seen and looks as far as the search does.
+ */
+std::vector<known_place> known_places();
+
 } // namespace cata::access
