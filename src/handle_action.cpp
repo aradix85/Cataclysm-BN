@@ -79,6 +79,7 @@
 #include "output.h"
 #include "overmap_ui.h"
 #include "panels.h"
+#include "play_hook.h"
 #include "player.h"
 #include "player_activity.h"
 #include "popup.h"
@@ -339,6 +340,9 @@ static void generate_weather_anim_frame( const weather_type_id &wtype, weather_p
 input_context game::get_player_input( std::string &action )
 {
     ZoneScopedN( "get_player_input" );
+    // The world is about to take the keyboard back, whatever was on top a moment
+    // ago; see play_hook.h.
+    cata::fire_on_play_input();
     input_context ctxt;
     {
         ZoneScopedN( "get_player_input_context" );

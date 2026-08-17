@@ -33,6 +33,7 @@ local advanced_inventory = require("./lib/advanced_inventory")
 local keybindings = require("./lib/keybindings")
 local opening = require("./lib/opening")
 local overmap = require("./lib/overmap")
+local play = require("./lib/play")
 local messages = require("./lib/messages")
 local movement = require("./lib/movement")
 local surroundings = require("./lib/surroundings")
@@ -300,6 +301,25 @@ game.add_hook("on_overmap", {
     end
     open_menu = state
     open_prompt = nil
+    open_screen = nil
+  end,
+})
+
+-- The world is about to read a key, which is also the moment a screen that was on
+-- top has stopped answering them. Every screen in the game closes silently, so
+-- this is where that silence is broken -- once, for all of them at once, rather
+-- than at the bottom of each screen's own loop. See src/play_hook.h.
+--
+-- What was on top is forgotten here, so returning to the same screen later reads
+-- as arriving there again.
+game.add_hook("on_play_input", {
+  priority = 100,
+  fn = function()
+    for _, line in ipairs(play.utterances({ screen = open_menu ~= nil or open_screen ~= nil })) do
+      speech.say(line)
+    end
+    open_prompt = nil
+    open_menu = nil
     open_screen = nil
   end,
 })
