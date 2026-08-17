@@ -127,6 +127,7 @@
 #include "live_view.h"
 #include "loading_ui.h"
 #include "locations.h"
+#include "look_hook.h"
 #include "lua_actions.h"
 #include "npc.h"
 #include "magic/magic.h"
@@ -9924,6 +9925,8 @@ look_around_result game::look_around( bool show_window, tripoint_bub_ms &center,
         }
         g->invalidate_main_ui_adaptor();
         ui_manager::redraw();
+        // `action` still holds what the previous round answered; see look_hook.h.
+        cata::fire_on_look_around( lp, show_window, peeking, action );
 
         if( pixel_minimap_option ) {
             ctxt.set_timeout( 125 );

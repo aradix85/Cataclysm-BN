@@ -32,6 +32,7 @@ local inventory = require("./lib/inventory")
 local advanced_inventory = require("./lib/advanced_inventory")
 local keybindings = require("./lib/keybindings")
 local opening = require("./lib/opening")
+local look = require("./lib/look")
 local overmap = require("./lib/overmap")
 local play = require("./lib/play")
 local messages = require("./lib/messages")
@@ -332,6 +333,62 @@ local function square_name(pos)
   if not furn:str_id():is_null() then return furn:obj():name() end
   return here:get_ter_at(pos):obj():name()
 end
+
+-- The look-around cursor, which is the game's own way of asking about one square
+-- rather than about everything at once. Not a uilist, so it needs a firing point
+-- of its own -- see src/look_hook.h.
+--
+-- Everything the screen prints about a square is gathered here, which is what
+-- keeps lib/look.lua pure. Only sight comes from the firing point: how much of a
+-- square the character can make out is not something script can work out.
+--
+-- Its state goes into the same variable as the menu's, because whichever screen is
+-- on top holds the keyboard and they cannot both be open.
+game.add_hook("on_look_around", {
+  priority = 100,
+  fn = function(params)
+    local you = gapi.get_avatar()
+    local here = gapi.get_map()
+    local at = you:get_pos_ms()
+    local cursor = params.cursor
+
+    -- Hallucinations are excluded, as the game's own panel excludes them.
+    local critter = gapi.get_creature_at(cursor, false)
+    local sensed = {}
+    -- A creature the eyes cannot reach but a sense can: infrared through
+    -- darkness, the special senses through walls. This is F3 itself -- the
+    -- mechanic works and was invisible to the player -- so it is said in the
+    -- game's own words rather than left out.
+    if critter and params.sight ~= "clear" then
+      if perception.sees_with_infrared(you, critter) then
+        sensed = perception.describe_infrared(critter)
+      elseif perception.sees_with_specials(you, critter) then
+        sensed = perception.describe_specials(critter)
+      end
+    end
+
+    local state = look.state({
+      sight = params.sight,
+      name = square_name(cursor),
+      area = perception.area_name_at(cursor),
+      creature = critter and critter:get_name() or "",
+      sensed = sensed,
+      sound = perception.sound_at(cursor),
+      items = #here:get_items_at(cursor),
+      dx = cursor.x - at.x,
+      dy = cursor.y - at.y,
+      dz = cursor.z - at.z,
+      peeking = params.peeking,
+    })
+
+    for _, line in ipairs(look.utterances(state, open_menu)) do
+      speech.say(line)
+    end
+    open_menu = state
+    open_prompt = nil
+    open_screen = nil
+  end,
+})
 
 -- A step the game is willing to take. The square is one it will enter, so this
 -- is where the ground underfoot is named, and only when it changes.
