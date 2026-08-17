@@ -401,8 +401,14 @@ game.add_hook("on_look_around", {
     local at = you:get_pos_ms()
     local cursor = params.cursor
 
-    -- Hallucinations are excluded, as the game's own panel excludes them.
-    local critter = gapi.get_creature_at(cursor, false)
+    -- Hallucinations are excluded, as the game's own panel excludes them. The
+    -- character herself is excluded too, and that is not the same thing: the cursor
+    -- opens on her own square, the game counts her as the creature standing there,
+    -- and the square would answer with her own name read out as a stranger. Told
+    -- apart by the square rather than by the name, since two characters can share
+    -- one name and only one of them can stand on her feet.
+    local standing_here = cursor.x == at.x and cursor.y == at.y and cursor.z == at.z
+    local critter = not standing_here and gapi.get_creature_at(cursor, false) or nil
     local sensed = {}
     -- A creature the eyes cannot reach but a sense can: infrared through
     -- darkness, the special senses through walls. This is F3 itself -- the

@@ -33,8 +33,8 @@ end
 
 check.equal(
   say(at({}), nil),
-  "Look around. / Forest. / grass, here.",
-  "Opening says the screen, the region it prints above the square, and the square the cursor starts on"
+  "Look around. / Forest. / grass, you are here.",
+  "Opening says the screen, the region above the square, and her own square, which is where the cursor starts"
 )
 
 check.equal(

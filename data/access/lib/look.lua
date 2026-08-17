@@ -77,7 +77,12 @@ local function where_words(state)
   local levels = level_words(state.dz)
   if levels then parts[#parts + 1] = levels end
 
-  if #parts == 0 then return "here" end
+  -- The cursor starts on her and returns there on the centring key. Said as her
+  -- own square rather than as a bare "here", because that is what it is: the game
+  -- counts her as the creature standing there and the square is the one place on
+  -- the map she can be sure of. A bearing of zero would otherwise read as no
+  -- answer at all.
+  if #parts == 0 then return "you are here" end
   return table.concat(parts, ", ")
 end
 
