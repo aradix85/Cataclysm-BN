@@ -32,6 +32,7 @@ local inventory = require("./lib/inventory")
 local advanced_inventory = require("./lib/advanced_inventory")
 local keybindings = require("./lib/keybindings")
 local opening = require("./lib/opening")
+local overmap = require("./lib/overmap")
 local messages = require("./lib/messages")
 local movement = require("./lib/movement")
 local surroundings = require("./lib/surroundings")
@@ -278,6 +279,28 @@ game.add_hook("on_main_menu", {
     open_screen = state
     open_prompt = nil
     open_menu = nil
+  end,
+})
+
+-- The overmap, which is where the world stops being squares and becomes named
+-- places: the game describes a tile as "house in central Springfield" and its own
+-- travel key walks the character there. It is not a uilist and needs a firing
+-- point of its own -- see src/overmap_hook.h.
+--
+-- Its state goes into the same variable as the menu's, because whichever screen
+-- is on top holds the keyboard and they cannot both be open. The wording lives
+-- in lib/overmap.lua, which ignores a remembered state belonging to another
+-- screen: closing a menu drawn over the map is arriving back at the map.
+game.add_hook("on_overmap", {
+  priority = 100,
+  fn = function(params)
+    local state = overmap.state(params)
+    for _, line in ipairs(overmap.utterances(state, open_menu)) do
+      speech.say(line)
+    end
+    open_menu = state
+    open_prompt = nil
+    open_screen = nil
   end,
 })
 

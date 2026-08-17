@@ -54,6 +54,7 @@
 #include "options.h"
 #include "output.h"
 #include "overmap.h"
+#include "overmap_hook.h"
 #include "overmap_label.h"
 #include "overmap_label_note.h"
 #include "overmap_types.h"
@@ -2194,6 +2195,8 @@ static tripoint_abs_omt display( const tripoint_abs_omt &orig,
     do {
 
         ui_manager::redraw();
+        // `action` still holds what the previous round answered; see overmap_hook.h.
+        cata::fire_on_overmap( curs, action );
 #if (defined TILES || defined _WIN32 || defined WINDOWS )
         int scroll_timeout = get_option<int>( "EDGE_SCROLL" );
         // If EDGE_SCROLL is disabled, it will have a value of -1.
