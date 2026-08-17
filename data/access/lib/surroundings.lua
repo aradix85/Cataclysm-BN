@@ -39,6 +39,43 @@ local function group_line(entries, singular, plural)
   return string.format("%d %s. Nearest: %s, here.", #entries, plural, what)
 end
 
+--- How far the room goes, as a compass sweep.
+---
+--- The one answer here whose subject is the direction rather than the thing, and
+--- deliberately: these four are a frame rather than four separate findings, and a
+--- frame is only usable if it always arrives in the same order. So it reads north,
+--- east, south, west, always, and the number is how many squares can be walked that
+--- way before something stops her.
+---
+--- A sighted player has this for free -- the whole room is on the screen, and the
+--- shape of it needs no remembering. Without that, a corridor and an open field
+--- feel identical until something is walked into, which is what makes this the
+--- expensive thing to work out and the cheap thing to say.
+--- @param reach table|nil { north = { steps, blocked }, east = ..., south = ..., west = ... }
+--- @return string|nil
+local function reach_line(reach)
+  if not reach then return nil end
+
+  local parts = {}
+  for _, side in ipairs({ "north", "east", "south", "west" }) do
+    local arm = reach[side]
+    if arm then
+      if not arm.blocked then
+        -- Nothing stopped her within the distance looked at, which is a different
+        -- fact from a long corridor and is said as one.
+        parts[#parts + 1] = side .. " open"
+      elseif arm.steps == 0 then
+        parts[#parts + 1] = side .. " blocked"
+      else
+        parts[#parts + 1] = string.format("%s %d", side, arm.steps)
+      end
+    end
+  end
+
+  if #parts == 0 then return nil end
+  return "Space: " .. table.concat(parts, ", ") .. "."
+end
+
 --- What to say about the surroundings.
 ---
 --- Answering "nothing nearby" rather than staying silent is deliberate: P5 is
@@ -48,14 +85,18 @@ end
 --- The area comes first because it is the largest thing true of where she is
 --- standing, and because it is the answer to a question that otherwise costs a
 --- trip to the overmap and back: the game names the region a square belongs to
---- and never says it out loud anywhere in play.
---- @param around table { area, enemies, others, landmarks }, each list of { name, dx, dy }
+--- and never says it out loud anywhere in play. The room's reach follows it, since
+--- the two together are where she is; everything after them is what is in it.
+--- @param around table { area, reach, enemies, others, landmarks }
 --- @return string[]
 surroundings.overview = function(around)
   local out = {}
 
   local area = around.area or ""
   if area ~= "" then out[#out + 1] = area:sub(1, 1):upper() .. area:sub(2) .. "." end
+
+  local reach = reach_line(around.reach)
+  if reach then out[#out + 1] = reach end
 
   local enemies = group_line(around.enemies or {}, "enemy", "enemies")
   if enemies then out[#out + 1] = enemies end
@@ -66,9 +107,10 @@ surroundings.overview = function(around)
   local landmarks = group_line(around.landmarks or {}, "way out", "ways out")
   if landmarks then out[#out + 1] = landmarks end
 
-  -- Only the area is not an answer to "what is around me", so the empty word is
+  -- Where she is is not an answer to "what is around me", so the empty word is
   -- still owed when nothing else was found.
-  if #out == 0 or (#out == 1 and area ~= "") then out[#out + 1] = "Nothing nearby." end
+  local placed = (area ~= "" and 1 or 0) + (reach and 1 or 0)
+  if #out == placed then out[#out + 1] = "Nothing nearby." end
   return out
 end
 

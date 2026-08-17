@@ -58,3 +58,34 @@ check.equal(
   "Nothing nearby.",
   "With no region given the answer is what it always was, so a caller that cannot ask still gets one"
 )
+
+--- The room as the layer measures it: how far each way before something stops her.
+local function reach(n, e, s, w)
+  local function arm(v)
+    if v == nil then return { steps = 12, blocked = false } end
+    return { steps = v, blocked = true }
+  end
+  return { north = arm(n), east = arm(e), south = arm(s), west = arm(w) }
+end
+
+check.equal(
+  say(surroundings.overview({ area = "subway", reach = reach(3, 7, 0, 2) })),
+  "Subway. / Space: north 3, east 7, south blocked, west 2. / Nothing nearby.",
+  "The room is read as a fixed compass sweep, so a corridor running east is hearable as one"
+)
+
+check.equal(
+  say(surroundings.overview({ reach = reach(nil, nil, 1, 1) })),
+  "Space: north open, east open, south 1, west 1. / Nothing nearby.",
+  "A direction nothing stopped her in is a different fact from a long corridor, and is said as one"
+)
+
+check.equal(
+  say(surroundings.overview({
+    area = "field",
+    reach = reach(2, 2, 2, 2),
+    enemies = { { name = "zombie", dx = 0, dy = -3 } },
+  })),
+  "Field. / Space: north 2, east 2, south 2, west 2. / 1 enemy. zombie, 3 north.",
+  "Where she is comes first and what is in it after, and the empty word is not owed once something was found"
+)

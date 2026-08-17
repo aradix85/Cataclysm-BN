@@ -97,6 +97,9 @@ game.add_hook("on_debugmsg", {
 -- cost of the command -- keep it small enough that a keypress answers at once.
 local RANGE = 12
 local LANDMARK_RANGE = 8
+-- How far the room is measured in each direction. A room is ten squares across at
+-- most, so beyond this the answer stops being about the room she is standing in.
+local WALL_RANGE = 12
 
 gapi.register_default_mode_action("bn_access_surroundings", "Accessibility: what is around me")
 
@@ -492,6 +495,26 @@ game.add_hook("on_player_move_refused", {
   end,
 })
 
+-- How far the room goes in one direction: how many squares can be walked that way
+-- before something stops her, and whether anything did within the distance looked
+-- at. A wall, a counter, a locked door and a vehicle all stop her alike, which is
+-- what makes move cost the right question -- it is what the game itself asks before
+-- letting a step happen.
+--
+-- Bounded by WALL_RANGE, because the answer is about the room she is in rather than
+-- about the horizon, and an unbounded scan across open ground would cost a keypress
+-- more than it is worth.
+local function arm_of(at, dx, dy)
+  for steps = 1, WALL_RANGE do
+    if
+      perception.move_cost_at(coords.tripoint_bub_ms(at.x + dx * steps, at.y + dy * steps, at.z)) == 0
+    then
+      return { steps = steps - 1, blocked = true }
+    end
+  end
+  return { steps = WALL_RANGE, blocked = false }
+end
+
 -- Gathering what is around the player. The only impure part of the layer:
 -- everything it produces is plain numbers and strings, which is what lets the
 -- wording be asserted without a game.
@@ -532,6 +555,14 @@ local function collect()
 
   return {
     area = perception.area_name_at(at),
+    -- Which way the room lets her walk, and how far. Four directions and not eight:
+    -- a frame has to be held in the head while she walks it, and four is what fits.
+    reach = {
+      north = arm_of(at, 0, -1),
+      east = arm_of(at, 1, 0),
+      south = arm_of(at, 0, 1),
+      west = arm_of(at, -1, 0),
+    },
     enemies = enemies,
     others = others,
     landmarks = landmarks,
