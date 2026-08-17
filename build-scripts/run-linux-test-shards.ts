@@ -13,6 +13,7 @@ import { assertEquals } from "@std/assert"
 import { pooledMap } from "@std/async"
 import { emptyDir, ensureDir } from "@std/fs"
 import { basename, join } from "@std/path"
+import { runWithRetry } from "./bn_access_shard_retry.ts"
 
 type Mode = "auto" | "file-tags" | "tiles" | "legacy"
 
@@ -347,7 +348,11 @@ const run = async (options: Options): Promise<number> => {
 
     let status = 0
     for await (
-      const code of pooledMap(parsed.jobs, shards, (shard) => runShard(parsed, testOpts, shard))
+      const code of pooledMap(
+        parsed.jobs,
+        shards,
+        (shard) => runWithRetry(shard.name, () => runShard(parsed, testOpts, shard)),
+      )
     ) {
       if (code !== 0 && status === 0) {
         status = code

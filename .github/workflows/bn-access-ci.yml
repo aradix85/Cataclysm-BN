@@ -77,6 +77,25 @@ jobs:
   # and the clone already carries eleven of its own, so the only thing turning
   # it off costs is package size and one network dependency in every build.
 
+  # The shard retry the shared build file now calls into is ours, so it is asserted
+  # rather than trusted. It decides whether a failed shard is run again and whether
+  # the build still fails when it fails twice, and both of those are worth a test:
+  # a retry that swallowed the second failure would publish a broken build, and one
+  # that never fired would leave the flaky class costing the release exactly as
+  # before, invisibly. deno's own test include covers scripts/ and .agents/ only,
+  # so the file is named here rather than found.
+  shard-retry:
+    name: The shard retry, asserted
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with: { cache: true }
+
+      - name: Assert a failed shard is run once more and no further
+        run: deno test build-scripts/bn_access_shard_retry_test.ts
+
   # The EmmyLua analyser, judged rather than merely run.
   #
   # The shared build file already runs it on the Linux job, over the whole clone
