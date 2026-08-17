@@ -18,6 +18,11 @@ test_data.furn_description = perception.furn_description_at(at)
 test_data.sound = perception.sound_at(at)
 test_data.footsteps = #perception.footstep_markers()
 
+-- The region a square belongs to. Named at overmap scale and asked at map scale,
+-- because the projection between the two is the binding's job: a coordinate of
+-- overmap scale is not something script can hand back.
+test_data.area_name = perception.area_name_at(at)
+
 -- The special senses take a character and a creature together, which is why
 -- they are free functions rather than methods on either.
 test_data.infrared_self = tostring(perception.sees_with_infrared(you, you))

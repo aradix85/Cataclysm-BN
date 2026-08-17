@@ -1,5 +1,6 @@
 #include "catalua_bindings.h"
 
+#include "access_places.h"
 #include "catalua_bindings_utils.h"
 #include "catalua_luna.h"
 #include "catalua_luna_doc.h"
@@ -117,6 +118,14 @@ void reg_perception( sol::state &lua )
         std::vector<std::string> buf;
         critter.describe_specials( buf );
         return buf;
+    } );
+
+    DOC( "Name of the region a map square belongs to -- 'overgrown cabin', 'forest'. This is the "
+         "area name the game's own look-around window prints above a square, and it is reachable "
+         "no other way from script: the overmap terrain's id is bound and the terrain itself is "
+         "not." );
+    luna::set_fx( lib, "area_name_at", []( const tripoint_bub_ms & p ) -> std::string {
+        return cata::access::area_name_at( p );
     } );
 
     luna::finalize_lib( lib );

@@ -1,5 +1,6 @@
 #include "overmap_hook.h"
 
+#include "access_places.h"
 #include "avatar.h"
 #include "catalua_hooks.h"
 #include "catalua_sol.h"
@@ -16,26 +17,6 @@ namespace cata
 
 namespace
 {
-
-// The description the sidebar prints for a tile, and the one thing here that
-// reproduces the screen's reasoning rather than reading a value off it: a tile
-// that is its region's own default terrain is drawn under the region's display
-// terrain where the region names one, and gets the full description with the
-// nearest city otherwise. Both branches are the game's own words. Saying
-// anything else would put the layer and the wiki out of step about the same
-// tile, which is the whole reason the fork speaks the game's screens instead of
-// building its own.
-std::string place_of( const tripoint_abs_omt &cursor )
-{
-    overmapbuffer &buffer = ACTIVE_OVERMAP_BUFFER;
-    const oter_id here = buffer.ter( cursor );
-    const regional_settings &region = buffer.get_settings( cursor );
-
-    if( !region.display_oter.is_empty() && here == region.default_oter.id() ) {
-        return region.display_oter.id().obj().get_name();
-    }
-    return buffer.get_description_at( project_to<coords::sm>( cursor ) );
-}
 
 // How many tiles the previewed route holds, and 0 unless it leads to the tile
 // the cursor is on. The player keeps one previewed route at a time, so a route
@@ -108,7 +89,7 @@ void fire_on_overmap( const tripoint_abs_omt &cursor, const std::string &action 
     // outside the game, and a layer that spoke through it would be reporting
     // what the character cannot know.
     if( view.seen ) {
-        view.place = place_of( cursor );
+        view.place = access::place_description_at( cursor );
     }
     view.explored = buffer.is_explored( cursor );
     view.note = note_of( buffer, cursor );

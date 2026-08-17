@@ -13,7 +13,7 @@
 
 local movement = {}
 
---- @param step table { blocked = boolean|nil, name = string, changed = boolean|nil }
+--- @param step table { blocked = boolean|nil, name = string, changed = boolean|nil, area = string|nil }
 --- @return string[]
 movement.utterances = function(step)
   if step.blocked then
@@ -21,8 +21,18 @@ movement.utterances = function(step)
     -- qualifier, and the player can stop listening after the first word.
     return { string.format("%s, blocked.", step.name) }
   end
-  if step.changed and step.name ~= "" then return { string.format("%s.", step.name) } end
-  return {}
+
+  local out = {}
+  -- Crossing into another region of the overmap, which is the one thing about a
+  -- step that is bigger than the square it lands on: leaving the woods and
+  -- entering a cabin is where she is, not what is underfoot. A region is two
+  -- dozen squares across, so this is rare by construction, and it is said before
+  -- the ground because it is the larger of the two.
+  local area = step.area or ""
+  if area ~= "" then out[#out + 1] = area:sub(1, 1):upper() .. area:sub(2) .. "." end
+
+  if step.changed and step.name ~= "" then out[#out + 1] = string.format("%s.", step.name) end
+  return out
 end
 
 return movement

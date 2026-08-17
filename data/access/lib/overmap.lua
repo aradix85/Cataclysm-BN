@@ -105,6 +105,20 @@ local function route_line(route)
   return string.format("Route: %d tiles.", route)
 end
 
+--- Why the travel key answered with nothing.
+---
+--- The screen draws nothing in all three cases and the game refuses a path in
+--- all three, so one word for them would be true and useless: "no route" sends
+--- her looking for another way round when what is needed is to look at the place
+--- first, or to notice that the cursor never left her.
+local function refusal_words(state)
+  if state.dx == 0 and state.dy == 0 and state.dz == 0 then return "You are here." end
+  -- The game will not path into what the map does not hold yet, whatever lies
+  -- there in fact. So this is the one refusal that is answered by going to look.
+  if not state.seen then return "Not on the map yet." end
+  return "No route."
+end
+
 --- What to say about this firing, given the one before it.
 --- @param state table normalised by overmap.state
 --- @param previous table|nil the state of the firing before this one
@@ -139,10 +153,10 @@ overmap.utterances = function(state, previous)
   if state.route > 0 then
     if moved or state.route ~= was_route then out[#out + 1] = route_line(state.route) end
   elseif not arrived and state.action == TRAVEL then
-    -- The travel key answered, and there is no route to answer with: the tile is
-    -- unreachable on foot, unseen, or the one she is standing on. The screen
-    -- draws nothing in every one of those cases.
-    out[#out + 1] = "No route."
+    -- The travel key answered, and there is no route to answer with. Which of
+    -- the three reasons it is decides what she does next, so it is said rather
+    -- than flattened into one refusal.
+    out[#out + 1] = refusal_words(state)
   end
 
   return out

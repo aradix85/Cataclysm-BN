@@ -44,10 +44,18 @@ end
 --- Answering "nothing nearby" rather than staying silent is deliberate: P5 is
 --- about not volunteering emptiness, and this was asked for. A silent answer to
 --- a keypress cannot be told apart from a key that never arrived.
---- @param around table { enemies, others, landmarks }, each a list of { name, dx, dy }
+---
+--- The area comes first because it is the largest thing true of where she is
+--- standing, and because it is the answer to a question that otherwise costs a
+--- trip to the overmap and back: the game names the region a square belongs to
+--- and never says it out loud anywhere in play.
+--- @param around table { area, enemies, others, landmarks }, each list of { name, dx, dy }
 --- @return string[]
 surroundings.overview = function(around)
   local out = {}
+
+  local area = around.area or ""
+  if area ~= "" then out[#out + 1] = area:sub(1, 1):upper() .. area:sub(2) .. "." end
 
   local enemies = group_line(around.enemies or {}, "enemy", "enemies")
   if enemies then out[#out + 1] = enemies end
@@ -58,7 +66,9 @@ surroundings.overview = function(around)
   local landmarks = group_line(around.landmarks or {}, "way out", "ways out")
   if landmarks then out[#out + 1] = landmarks end
 
-  if #out == 0 then out[1] = "Nothing nearby." end
+  -- Only the area is not an answer to "what is around me", so the empty word is
+  -- still owed when nothing else was found.
+  if #out == 0 or (#out == 1 and area ~= "") then out[#out + 1] = "Nothing nearby." end
   return out
 end
 

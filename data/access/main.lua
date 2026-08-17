@@ -322,8 +322,19 @@ game.add_hook("on_player_try_move", {
   priority = 100,
   fn = function(params)
     local name = square_name(params.to)
+    -- Leaving one region of the overmap for another, which the game names and
+    -- says nowhere in play: without this the only way to learn that she has
+    -- walked into the cabin she was heading for is to open the map. Compared by
+    -- name and not by coordinate, because the name is what she would hear and two
+    -- stretches of forest meeting is not an arrival.
+    local area = perception.area_name_at(params.to)
+    local step = {
+      name = name,
+      changed = name ~= square_name(params.from),
+      area = area ~= perception.area_name_at(params.from) and area or "",
+    }
 
-    for _, line in ipairs(movement.utterances({ name = name, changed = name ~= square_name(params.from) })) do
+    for _, line in ipairs(movement.utterances(step)) do
       speech.say(line)
     end
   end,
@@ -387,7 +398,12 @@ local function collect()
     end
   end
 
-  return { enemies = enemies, others = others, landmarks = landmarks }
+  return {
+    area = perception.area_name_at(at),
+    enemies = enemies,
+    others = others,
+    landmarks = landmarks,
+  }
 end
 
 -- An action in the default mode context can only arrive while no popup, no menu

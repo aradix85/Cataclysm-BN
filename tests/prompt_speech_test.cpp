@@ -175,6 +175,12 @@ TEST_CASE("bn_access_perception_bindings", "[lua]") {
     CHECK(test_data["sound"].get<sol::optional<std::string>>().has_value());
     CHECK(test_data["footsteps"].get<int>() >= 0);
 
+    // Every square on any map belongs to some region of the overmap, so a name
+    // always comes back. This is the one perception answer that is not about the
+    // square itself but about where in the world the square is, and the only
+    // route to it: the overmap terrain's id is bound and the terrain is not.
+    CHECK_FALSE(test_data["area_name"].get<std::string>().empty());
+
     // The special senses reach a creature the eyes cannot. Nothing is asserted
     // about the answer for the avatar itself -- only that both questions can be
     // asked, and that both descriptions come back as a list.

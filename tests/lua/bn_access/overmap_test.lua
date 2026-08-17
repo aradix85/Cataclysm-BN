@@ -125,6 +125,21 @@ check.equal(
 )
 
 check.equal(
+  say(
+    at({ seen = false, place = "", dx = 0, dy = -20, action = "CHOOSE_DESTINATION" }),
+    at({ seen = false, place = "", dx = 0, dy = -20 })
+  ),
+  "Not on the map yet.",
+  "A refusal on a tile the map does not hold yet says so, since going to look is what answers it and no other way round will"
+)
+
+check.equal(
+  say(at({ action = "CHOOSE_DESTINATION" }), at({})),
+  "You are here.",
+  "The travel key pressed without moving the cursor says where the cursor is, rather than blaming the route"
+)
+
+check.equal(
   say(at({ dx = 4, action = "TOGGLE_HORDES" }), at({ dx = 4 })),
   "",
   "A key that is not the travel key and changed nothing about the tile stays silent"
