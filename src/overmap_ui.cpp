@@ -1842,6 +1842,9 @@ static bool search( const ui_adaptor &om_ui, tripoint_abs_omt &curs, const tripo
         curs.y() = locations[i].y();
         om_ui.invalidate_ui();
         ui_manager::redraw();
+        // The same hook the map itself fires: a search result is a place under the
+        // cursor like any other. See overmap_hook.h.
+        cata::fire_on_overmap( curs, action );
         action = ctxt.handle_input( get_option<int>( "BLINK_SPEED" ) );
         if( uistate.overmap_blinking ) {
             uistate.overmap_show_overlays = !uistate.overmap_show_overlays;

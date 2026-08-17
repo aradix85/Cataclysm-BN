@@ -6,6 +6,7 @@
 #include <vector>
 
 class map_item_stack;
+class Creature;
 
 namespace cata
 {
@@ -61,5 +62,19 @@ void fire_on_nearby_items( const std::vector<nearby_row> &rows, const std::strin
 void fire_on_nearby_items( const std::vector<map_item_stack> &filtered,
                            const map_item_stack *active, int page, bool grouped,
                            const std::string &action );
+
+/**
+ * Fire the `on_nearby_monsters` hook for the game's list of what is in view and
+ * alive, which is the item list's twin: the same screen, the same keys, the other
+ * tab.
+ *
+ * Params match `on_nearby_items` -- `count`, `cursor` and `entry` as
+ * `{ text, category, count, dx, dy, dz }` -- so that one reading model answers
+ * both. `category` carries how the creature stands towards her, which is the one
+ * thing about a creature in a list that the name does not say and that decides
+ * what she does about it.
+ */
+void fire_on_nearby_monsters( const std::vector<Creature *> &monsters, int cursor,
+                              const std::string &action );
 
 } // namespace cata

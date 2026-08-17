@@ -351,7 +351,29 @@ game.add_hook("on_play_input", {
 game.add_hook("on_nearby_items", {
   priority = 100,
   fn = function(params)
-    local state = nearby.state(params)
+    local state = nearby.state(params, "Items nearby")
+    for _, line in ipairs(nearby.utterances(state, open_menu)) do
+      speech.say(line)
+    end
+    open_menu = state
+    open_prompt = nil
+    open_screen = nil
+  end,
+})
+
+-- The other tab of that same screen: what is in view and alive. The rows carry how
+-- each creature stands towards her, which the screen draws as a colour and as the
+-- order it sorts by, and which is the one thing a name does not say.
+game.add_hook("on_nearby_monsters", {
+  priority = 100,
+  fn = function(params)
+    local entry = params.entry
+    local attitude = entry and text.clean(entry.category or "") or ""
+    if entry and text.is_speakable(attitude) then
+      entry.text = string.format("%s, %s", entry.text, attitude:lower())
+    end
+
+    local state = nearby.state(params, "Creatures nearby")
     for _, line in ipairs(nearby.utterances(state, open_menu)) do
       speech.say(line)
     end

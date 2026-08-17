@@ -11690,6 +11690,9 @@ game::vmenu_ret game::list_monsters( const std::vector<Creature *> &monster_list
 
         ui_manager::redraw();
 
+        // `action` still holds what the previous round answered; see nearby_hook.h.
+        cata::fire_on_nearby_monsters( monster_list, iActive, action );
+
         action = ctxt.handle_input();
     } while( action != "QUIT" );
 

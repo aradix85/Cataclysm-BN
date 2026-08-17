@@ -27,7 +27,7 @@ local function list(opts)
       dy = opts.dy or 0,
       dz = opts.dz or 0,
     } or nil,
-  })
+  }, opts.title or "Items nearby")
 end
 
 check.equal(
@@ -73,4 +73,10 @@ check.equal(
   ),
   "1 entry. / rock, 9 southeast, 1 of 1.",
   "Typing a filter answers with how much is left and then the row, whose position in the list has changed with it"
+)
+
+check.equal(
+  say(list({ title = "Creatures nearby", count = 2, cursor = 1, name = "zombie, hostile", dy = -5 }), nil),
+  "Creatures nearby, 2 entries. / zombie, hostile, 5 north, 1 of 2.",
+  "The other tab of the same screen is read the same way, with how the creature stands towards her in its name"
 )

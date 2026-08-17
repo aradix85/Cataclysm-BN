@@ -48,14 +48,19 @@ local function place_words(entry)
 end
 
 --- The screen as menus.lua wants it, with the place in the column it speaks.
+---
+--- One state for both tabs of the one screen: the items lying about and the
+--- creatures standing about are the same question asked of different things, so
+--- they are read the same way rather than by two models.
 --- @param params table
+--- @param title string what this tab lists, said once on opening
 --- @return table
-nearby.state = function(params)
+nearby.state = function(params, title)
   local entry = params.entry
 
   return menus.state({
     category = "LIST_ITEMS",
-    title = "Items nearby",
+    title = title,
     text = "",
     count = params.count,
     cursor = params.cursor,
