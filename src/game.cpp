@@ -152,6 +152,7 @@
 #include "morale_types.h"
 #include "mtype.h"
 #include "mutation.h"
+#include "nearby_hook.h"
 #include "npc_class.h"
 #include "omdata.h"
 #include "options.h"
@@ -11350,6 +11351,10 @@ game::vmenu_ret game::list_items( const std::vector<map_item_stack> &item_list )
         invalidate_main_ui_adaptor();
 
         ui_manager::redraw();
+
+        // `action` still holds what the previous round answered; see nearby_hook.h.
+        cata::fire_on_nearby_items( filtered_items, activeItem, page_num, !mSortCategory.empty(),
+                                    action );
 
         action = ctxt.handle_input();
     } while( action != "QUIT" );

@@ -33,6 +33,7 @@ local advanced_inventory = require("./lib/advanced_inventory")
 local keybindings = require("./lib/keybindings")
 local opening = require("./lib/opening")
 local look = require("./lib/look")
+local nearby = require("./lib/nearby")
 local overmap = require("./lib/overmap")
 local play = require("./lib/play")
 local messages = require("./lib/messages")
@@ -321,6 +322,30 @@ game.add_hook("on_play_input", {
     end
     open_prompt = nil
     open_menu = nil
+    open_screen = nil
+  end,
+})
+
+-- The game's own list of every item in view, on its own key. Not a uilist and not
+-- built on the inventory, so it needs a firing point of its own -- see
+-- src/nearby_hook.h.
+--
+-- It answers the question the look-around cursor cannot: where is there anything
+-- at all, without walking a cursor over every square. The wording composes the
+-- menu's reading model and adds the one thing this screen exists for, which is
+-- where each item is.
+--
+-- Its state goes into the same variable as the menu's, because whichever screen is
+-- on top holds the keyboard and they cannot both be open.
+game.add_hook("on_nearby_items", {
+  priority = 100,
+  fn = function(params)
+    local state = nearby.state(params)
+    for _, line in ipairs(nearby.utterances(state, open_menu)) do
+      speech.say(line)
+    end
+    open_menu = state
+    open_prompt = nil
     open_screen = nil
   end,
 })
