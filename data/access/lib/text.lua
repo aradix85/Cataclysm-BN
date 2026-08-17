@@ -27,4 +27,27 @@ end
 --- @return boolean
 text.is_speakable = function(s) return s ~= "" and s:find("%w") ~= nil end
 
+--- Prose the game wrote for a window, as a list of lines worth saying.
+---
+--- Long descriptions carry markup beyond colour -- <good>, <bad>, <dark> -- which
+--- text.clean leaves alone because nothing else in the layer meets them, and they
+--- would be read out as words. They are dropped here along with every other tag.
+---
+--- Split before cleaning, because the game's own line breaks are the only structure
+--- the prose has: they separate a description from a list of what can be harvested
+--- from it. Collapsing them first would leave one utterance several paragraphs long,
+--- which is F5 with no way through it. Decoration lines go, per is_speakable.
+--- @param s string|nil
+--- @return string[]
+text.lines = function(s)
+  if not s or s == "" then return {} end
+
+  local out = {}
+  for line in (s .. "\n"):gmatch("([^\n]*)\n") do
+    local plain = text.clean(line:gsub("<[^<>]*>", ""))
+    if text.is_speakable(plain) then out[#out + 1] = plain end
+  end
+  return out
+end
+
 return text

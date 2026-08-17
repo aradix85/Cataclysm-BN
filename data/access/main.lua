@@ -30,6 +30,7 @@ local prompts = require("./lib/prompts")
 local menus = require("./lib/menus")
 local inventory = require("./lib/inventory")
 local advanced_inventory = require("./lib/advanced_inventory")
+local describe = require("./lib/describe")
 local keybindings = require("./lib/keybindings")
 local opening = require("./lib/opening")
 local look = require("./lib/look")
@@ -342,6 +343,29 @@ game.add_hook("on_nearby_items", {
   fn = function(params)
     local state = nearby.state(params)
     for _, line in ipairs(nearby.utterances(state, open_menu)) do
+      speech.say(line)
+    end
+    open_menu = state
+    open_prompt = nil
+    open_screen = nil
+  end,
+})
+
+-- The game's own detail screen, which the look-around cursor opens on its describe
+-- key. Not a uilist, so it needs a firing point of its own -- see
+-- src/description_hook.h.
+--
+-- It is the level of detail P1 keeps out of the per-square line: the full
+-- description of what is there, said in pieces so speech can be cut off, and only
+-- when it changes.
+--
+-- Its state goes into the same variable as the menu's, because whichever screen is
+-- on top holds the keyboard and they cannot both be open.
+game.add_hook("on_description", {
+  priority = 100,
+  fn = function(params)
+    local state = describe.state(params)
+    for _, line in ipairs(describe.utterances(state, open_menu)) do
       speech.say(line)
     end
     open_menu = state

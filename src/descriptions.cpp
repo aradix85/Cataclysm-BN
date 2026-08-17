@@ -8,6 +8,7 @@
 #include "avatar.h"
 #include "calendar.h"
 #include "color.h"
+#include "description_hook.h"
 #include "harvest.h"
 #include "input.h"
 #include "map.h"
@@ -163,6 +164,9 @@ void game::extended_description( const tripoint_bub_ms &p )
 
     do {
         ui_manager::redraw();
+        // `action` still holds what the previous round answered; see description_hook.h.
+        cata::fire_on_description( p, cur_target == description_target::creature ? "creature" :
+                                   cur_target == description_target::furniture ? "furniture" : "terrain", action );
         action = ctxt.handle_input();
         if( action == "CREATURE" ) {
             cur_target = description_target::creature;
