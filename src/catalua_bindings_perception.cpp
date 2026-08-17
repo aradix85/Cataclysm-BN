@@ -2,12 +2,14 @@
 
 #include "access_places.h"
 #include "access_zone.h"
+#include "avatar.h"
 #include "catalua_bindings_utils.h"
 #include "catalua_luna.h"
 #include "catalua_luna_doc.h"
 #include "character.h"
 #include "creature.h"
 #include "map.h"
+#include "map_memory.h"
 #include "mapdata.h"
 #include "sounds.h"
 #include "units_probability.h"
@@ -152,6 +154,18 @@ void reg_perception( sol::state &lua )
         out["seen_south"] = zone.seen_south;
         out["seen_west"] = zone.seen_west;
         return out;
+    } );
+
+    DOC( "Whether the character knows a map square at all: either she can see it now, or she "
+         "has seen it before and the map memory kept it. This is the honest filter for anything "
+         "that reports what is out there -- without it a layer would answer about a staircase "
+         "behind a wall in a room nobody has entered, which no player with sight can do." );
+    luna::set_fx( lib, "knows_square", []( const tripoint_bub_ms & p ) -> bool {
+        avatar &you = get_avatar();
+        if( you.sees( p ) ) {
+            return true;
+        }
+        return !you.get_memorized_tile( bub_to_abs( p ) ).tile.empty();
     } );
 
     luna::finalize_lib( lib );

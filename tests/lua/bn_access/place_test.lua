@@ -107,3 +107,16 @@ check.equal(
   "1 way out. wooden door, 3 east. / 2 ways down. Nearest: stairs, 8 north.",
   "Doors and stairs are never one group: one leads to the next room and the other out of this place"
 )
+
+check.equal(
+  say(surroundings.overview({
+    reach = {
+      north = { steps = 4, blocked = false, unknown = true },
+      east = { steps = 2, blocked = true },
+      south = { steps = 0, blocked = true },
+      west = { steps = 12, blocked = false },
+    },
+  })),
+  "Space: north 4 or more, east 2, south blocked, west open. / Nothing nearby.",
+  "A direction she has not been far enough along to know is said as a floor, not as open ground"
+)

@@ -512,9 +512,14 @@ game.add_hook("on_player_move_refused", {
 -- more than it is worth.
 local function arm_of(at, dx, dy)
   for steps = 1, WALL_RANGE do
-    if
-      perception.move_cost_at(coords.tripoint_bub_ms(at.x + dx * steps, at.y + dy * steps, at.z)) == 0
-    then
+    local pos = coords.tripoint_bub_ms(at.x + dx * steps, at.y + dy * steps, at.z)
+    -- Past what she knows, the answer stops. A wall she has never seen is not
+    -- hers to be told about, and a corridor that carries on into the dark is
+    -- honestly "at least this far" rather than either open or closed.
+    if not perception.knows_square(pos) then
+      return { steps = steps - 1, blocked = false, unknown = true }
+    end
+    if perception.move_cost_at(pos) == 0 then
       return { steps = steps - 1, blocked = true }
     end
   end
@@ -551,8 +556,14 @@ local function collect()
   end
 
   -- A door is the thing you need and cannot see: it is how you leave a room.
+  --
+  -- Only doors she knows about. The map holds every door in the building, and
+  -- answering with one behind a wall in a room nobody has entered would be
+  -- telling her something no player with sight can find out -- the layer is here
+  -- to make reading the game easier, not to make the game easier. What she has
+  -- once seen stays, because the game remembers it for her.
   for _, pos in ipairs(here:points_in_radius(at, LANDMARK_RANGE)) do
-    if here:has_ter_flag_at("DOOR", pos) then
+    if here:has_ter_flag_at("DOOR", pos) and perception.knows_square(pos) then
       local dx, dy = offset(pos)
       if not (dx == 0 and dy == 0) then
         landmarks[#landmarks + 1] = { name = here:get_ter_at(pos):obj():name(), dx = dx, dy = dy }
@@ -563,13 +574,16 @@ local function collect()
   -- Stairs are the other way out, and the one that leads somewhere else entirely:
   -- a floor up or down is usually another place with another name. Looked for
   -- further away than a door, because a staircase is worth walking to and a door
-  -- twenty squares off belongs to a room she is not in.
+  -- twenty squares off belongs to a room she is not in. Known ones only, for the
+  -- reason above.
   for _, pos in ipairs(here:points_in_radius(at, STAIR_RANGE)) do
-    local dx, dy = offset(pos)
-    if here:has_ter_flag_at("GOES_UP", pos) then
-      ways_up[#ways_up + 1] = { name = here:get_ter_at(pos):obj():name(), dx = dx, dy = dy }
-    elseif here:has_ter_flag_at("GOES_DOWN", pos) then
-      ways_down[#ways_down + 1] = { name = here:get_ter_at(pos):obj():name(), dx = dx, dy = dy }
+    if perception.knows_square(pos) then
+      local dx, dy = offset(pos)
+      if here:has_ter_flag_at("GOES_UP", pos) then
+        ways_up[#ways_up + 1] = { name = here:get_ter_at(pos):obj():name(), dx = dx, dy = dy }
+      elseif here:has_ter_flag_at("GOES_DOWN", pos) then
+        ways_down[#ways_down + 1] = { name = here:get_ter_at(pos):obj():name(), dx = dx, dy = dy }
+      end
     end
   end
 

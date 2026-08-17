@@ -60,7 +60,11 @@ local function reach_line(reach)
   for _, side in ipairs({ "north", "east", "south", "west" }) do
     local arm = reach[side]
     if arm then
-      if not arm.blocked then
+      if arm.unknown then
+        -- She has not been far enough that way to know, and saying "open" would
+        -- be telling her the map rather than what she has seen.
+        parts[#parts + 1] = string.format("%s %d or more", side, arm.steps)
+      elseif not arm.blocked then
         -- Nothing stopped her within the distance looked at, which is a different
         -- fact from a long corridor and is said as one.
         parts[#parts + 1] = side .. " open"
