@@ -1,6 +1,7 @@
 #include "catalua_bindings.h"
 
 #include "access_places.h"
+#include "access_zone.h"
 #include "catalua_bindings_utils.h"
 #include "catalua_luna.h"
 #include "catalua_luna_doc.h"
@@ -126,6 +127,31 @@ void reg_perception( sol::state &lua )
          "not." );
     luna::set_fx( lib, "area_name_at", []( const tripoint_bub_ms & p ) -> std::string {
         return cata::access::area_name_at( p );
+    } );
+
+    DOC( "The place the character is standing in, as a whole: its name, its size in region "
+         "tiles, how far it runs from her in each direction, and how far she has already been. "
+         "The difference between the last two is the part of it she has never seen, which is "
+         "the one thing here no screen in the game answers. Returns a table with `name`, "
+         "`tiles_wide`, `tiles_high`, `reach_north`/`east`/`south`/`west` and the matching "
+         "`seen_*`, all in steps." );
+    luna::set_fx( lib, "zone_around_player", []( sol::this_state s ) -> sol::table {
+        const cata::access::zone_report zone = cata::access::zone_around_player();
+
+        sol::state_view lua( s );
+        sol::table out = lua.create_table( 0, 11 );
+        out["name"] = zone.name;
+        out["tiles_wide"] = zone.tiles_wide;
+        out["tiles_high"] = zone.tiles_high;
+        out["reach_north"] = zone.reach_north;
+        out["reach_east"] = zone.reach_east;
+        out["reach_south"] = zone.reach_south;
+        out["reach_west"] = zone.reach_west;
+        out["seen_north"] = zone.seen_north;
+        out["seen_east"] = zone.seen_east;
+        out["seen_south"] = zone.seen_south;
+        out["seen_west"] = zone.seen_west;
+        return out;
     } );
 
     luna::finalize_lib( lib );

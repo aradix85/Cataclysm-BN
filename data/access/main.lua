@@ -41,6 +41,7 @@ local messages = require("./lib/messages")
 local movement = require("./lib/movement")
 local surroundings = require("./lib/surroundings")
 local text = require("./lib/text")
+local zone = require("./lib/zone")
 
 -- No mod table here, and no mod id: the fork loads this file itself, into every
 -- Lua state that exists, so that the layer is alive on the screens that come
@@ -102,6 +103,7 @@ local LANDMARK_RANGE = 8
 local WALL_RANGE = 12
 
 gapi.register_default_mode_action("bn_access_surroundings", "Accessibility: what is around me")
+gapi.register_default_mode_action("bn_access_zone", "Accessibility: where am I")
 
 -- The world is ready and the game is about to read a key. A new game reaches
 -- this through on_game_started and a loaded save through on_game_load, and a
@@ -581,6 +583,17 @@ game.add_hook("on_action", {
 
     if params.action == "bn_access_surroundings" then
       for _, line in ipairs(surroundings.overview(collect())) do
+        speech.say(line)
+      end
+      return false
+    end
+
+    -- Where she has ended up, rather than what is within reach of her. Asked once
+    -- on arriving somewhere and again when deciding whether this place is done,
+    -- which is why it is not folded into the answer above: that one is pressed
+    -- every few steps and would carry the size of a station she already knows.
+    if params.action == "bn_access_zone" then
+      for _, line in ipairs(zone.utterances(zone.state(perception.zone_around_player()))) do
         speech.say(line)
       end
       return false
