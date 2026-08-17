@@ -168,6 +168,26 @@ void reg_perception( sol::state &lua )
         return !you.get_memorized_tile( bub_to_abs( p ) ).tile.empty();
     } );
 
+    DOC( "Every way out of the place she is standing in that she knows of, nearest first: "
+         "doors, staircases, anything the game marks as leading elsewhere. Each is a table with "
+         "`name`, `kind` (`door`, `up` or `down`) and `dx`/`dy` from her. Known means seen now or "
+         "remembered from before -- what is on the map and has never been seen is left out." );
+    luna::set_fx( lib, "exits_in_zone", []( sol::this_state s ) -> sol::table {
+        const std::vector<cata::access::zone_exit> exits = cata::access::exits_in_zone();
+
+        sol::state_view lua( s );
+        sol::table out = lua.create_table( static_cast<int>( exits.size() ), 0 );
+        for( size_t i = 0; i < exits.size(); ++i ) {
+            sol::table row = lua.create_table( 0, 4 );
+            row["name"] = exits[i].name;
+            row["kind"] = exits[i].kind;
+            row["dx"] = exits[i].dx;
+            row["dy"] = exits[i].dy;
+            out[i + 1] = row;
+        }
+        return out;
+    } );
+
     luna::finalize_lib( lib );
 }
 

@@ -31,6 +31,7 @@ local menus = require("./lib/menus")
 local inventory = require("./lib/inventory")
 local advanced_inventory = require("./lib/advanced_inventory")
 local describe = require("./lib/describe")
+local exits = require("./lib/exits")
 local keybindings = require("./lib/keybindings")
 local opening = require("./lib/opening")
 local look = require("./lib/look")
@@ -605,6 +606,56 @@ local function collect()
   }
 end
 
+-- The list of ways out of this place, walked at her own pace.
+--
+-- The only screen the layer owns rather than speaks, and it earns that: no screen
+-- in the game answers which ways lead out of a building and where they are, because
+-- a sighted player reads it off the map in a glance. See lib/exits.lua.
+--
+-- A context of our own means the keys here are ours alone: the arrows move the
+-- selection and nothing else reaches the world, so no step is taken and no turn
+-- passes while she reads. It ends on escape or on any key it does not know, so
+-- there is no way to be stuck in it.
+local function browse_exits(place)
+  local list = perception.exits_in_zone()
+
+  -- Nothing to walk through is said once and left, rather than opening a screen
+  -- with one row in it saying there are none.
+  if #list == 0 then
+    for _, line in ipairs(exits.utterances(exits.state(list, nil, place), nil)) do
+      speech.say(line)
+    end
+    return
+  end
+
+  local ctxt = InputContext.new("BN_ACCESS_EXITS")
+  ctxt:register_action("UP")
+  ctxt:register_action("DOWN")
+  ctxt:register_action("QUIT")
+  ctxt:register_action("HELP_KEYBINDINGS")
+
+  local cursor = 1
+  local state = exits.state(list, cursor, place)
+  local previous = nil
+
+  while true do
+    for _, line in ipairs(exits.utterances(state, previous)) do
+      speech.say(line)
+    end
+    previous = state
+
+    local action = ctxt:handle_input()
+    if action == "UP" then
+      cursor = cursor > 1 and cursor - 1 or #list
+    elseif action == "DOWN" then
+      cursor = cursor < #list and cursor + 1 or 1
+    elseif action ~= "HELP_KEYBINDINGS" then
+      return
+    end
+    state = exits.state(list, cursor, place)
+  end
+end
+
 -- An action in the default mode context can only arrive while no popup, no menu
 -- and no opening screen holds the keyboard, so all three are gone and are
 -- forgotten here, for the reason given where they are declared.
@@ -627,9 +678,11 @@ game.add_hook("on_action", {
     -- which is why it is not folded into the answer above: that one is pressed
     -- every few steps and would carry the size of a station she already knows.
     if params.action == "bn_access_zone" then
-      for _, line in ipairs(zone.utterances(zone.state(perception.zone_around_player()))) do
+      local report = perception.zone_around_player()
+      for _, line in ipairs(zone.utterances(zone.state(report))) do
         speech.say(line)
       end
+      browse_exits(report.name)
       return false
     end
   end,

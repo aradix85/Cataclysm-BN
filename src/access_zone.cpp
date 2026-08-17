@@ -4,10 +4,14 @@
 #include "avatar.h"
 #include "coordinates.h"
 #include "game_constants.h"
+#include "map.h"
 #include "map_memory.h"
+#include "mapdata.h"
 
 #include <algorithm>
+#include <cstdlib>
 #include <string>
+#include <vector>
 
 namespace cata::access
 {
@@ -96,6 +100,62 @@ zone_report zone_around_player()
     out.seen_west = here.x() - seen_left;
     out.seen_east = seen_right - here.x();
 
+    return out;
+}
+
+std::vector<zone_exit> exits_in_zone()
+{
+    avatar &you = get_avatar();
+    map &here = get_map();
+    const zone_report zone = zone_around_player();
+    const tripoint_bub_ms at = you.bub_pos();
+
+    std::vector<zone_exit> out;
+    // The zone's own bounds, clipped to the loaded map on the way in: a square the
+    // game has not built cannot be asked what is on it.
+    for( int dy = -zone.reach_north; dy <= zone.reach_south; ++dy ) {
+        for( int dx = -zone.reach_west; dx <= zone.reach_east; ++dx ) {
+            const tripoint_bub_ms p( at.x() + dx, at.y() + dy, at.z() );
+            if( !here.inbounds( p ) || ( dx == 0 && dy == 0 ) ) {
+                continue;
+            }
+
+            std::string kind;
+            if( here.has_flag_ter( TFLAG_GOES_UP, p ) ) {
+                kind = "up";
+            } else if( here.has_flag_ter( TFLAG_GOES_DOWN, p ) ) {
+                kind = "down";
+            } else if( here.has_flag_ter( "DOOR", p ) ) {
+                // By name rather than by one of the fast flags: the two staircase
+                // flags have one and a door does not, which is upstream's choice
+                // and not something to work around.
+                kind = "door";
+            } else {
+                continue;
+            }
+
+            // Seen now, or seen once and remembered. The order matters for cost:
+            // line of sight is the expensive question and is asked last, of the few
+            // squares that turned out to be a way out at all.
+            if( you.get_memorized_tile( bub_to_abs( p ) ).tile.empty() && !you.sees( p ) ) {
+                continue;
+            }
+
+            zone_exit exit;
+            exit.name = here.ter( p ).obj().name();
+            exit.kind = kind;
+            exit.dx = dx;
+            exit.dy = dy;
+            out.push_back( exit );
+        }
+    }
+
+    // Nearest first, because that is the order she would walk them in, and diagonal
+    // distance the way the game counts it rather than as a straight line.
+    std::ranges::sort( out, []( const zone_exit & a, const zone_exit & b ) {
+        return std::max( std::abs( a.dx ), std::abs( a.dy ) ) <
+               std::max( std::abs( b.dx ), std::abs( b.dy ) );
+    } );
     return out;
 }
 
