@@ -1,10 +1,12 @@
 #include "catalua_impl.h"
 #include "catalua_sol.h"
 #include "catch/catch.hpp"
+#include "filesystem.h"
 #include "map_helpers.h"
 #include "player_helpers.h"
 
 #include <string>
+#include <vector>
 
 // The prompt-speech decisions live in data/access/lib/prompts.lua and
 // are pure: tables in, list of strings out. That is what makes them assertable
@@ -231,27 +233,23 @@ TEST_CASE("bn_access_error_utterances", "[lua]") {
     CHECK(test_data["long_length"].get<int>() < 240);
 }
 
-// A syntax error anywhere in the mod's own scripts is invisible until the game
-// loads it: the mod then registers nothing, announces nothing, and looks
+// A syntax error anywhere in the layer's own scripts is invisible until the
+// game loads it: the layer then registers nothing, announces nothing, and looks
 // exactly like a broken build to a player who cannot see the error. Parsing
 // them here turns that into a red test instead of a wasted session at the
 // keyboard. The scripts are only loaded, never run -- running them needs a game.
+//
+// The folder is walked rather than listed, so that a module added to the layer
+// is covered by having been written. A list is a second place to remember, and
+// the module it forgets is exactly the new one.
 TEST_CASE("bn_access_scripts_parse", "[lua]") {
     sol::state lua = make_lua_state();
 
-    for (const char* script : {
-             "data/access/main.lua",
-             "data/access/lib/speech.lua",
-             "data/access/lib/text.lua",
-             "data/access/lib/messages.lua",
-             "data/access/lib/bearing.lua",
-             "data/access/lib/movement.lua",
-             "data/access/lib/surroundings.lua",
-             "data/access/lib/prompts.lua",
-             "data/access/lib/menus.lua",
-             "data/access/lib/opening.lua",
-             "data/access/lib/errors.lua",
-         }) {
+    const std::vector<std::string> scripts = get_files_from_path(
+        ".lua", "data/access", /*recursive_search=*/true, /*match_extension=*/true);
+    REQUIRE(scripts.size() > 1);
+
+    for (const std::string& script : scripts) {
         INFO(script);
         sol::load_result loaded = lua.load_file(script);
         const bool valid = loaded.valid();

@@ -14,6 +14,7 @@
 
 #include "activity_actor.h"
 #include "activity_actor_definitions.h"
+#include "advanced_inventory_hook.h"
 #include "auto_pickup.h"
 #include "avatar.h"
 #include "calendar.h"
@@ -1434,6 +1435,10 @@ void advanced_inventory::display()
         // current item in source pane, might be null
         advanced_inv_listitem *sitem = spane.get_cur_item_ptr();
         aim_location changeSquare = NUM_AIM_LOCATIONS;
+
+        if( !is_processing() ) {
+            cata::fire_on_advanced_inventory( spane, dpane, squares );
+        }
 
         const std::string action = is_processing() ? "MOVE_ALL_ITEMS" : ctxt.handle_input();
         if( action == "CATEGORY_SELECTION" ) {

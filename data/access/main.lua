@@ -29,6 +29,7 @@ local errors = require("./lib/errors")
 local prompts = require("./lib/prompts")
 local menus = require("./lib/menus")
 local inventory = require("./lib/inventory")
+local advanced_inventory = require("./lib/advanced_inventory")
 local keybindings = require("./lib/keybindings")
 local opening = require("./lib/opening")
 local messages = require("./lib/messages")
@@ -194,6 +195,32 @@ game.add_hook("on_inventory", {
   fn = function(params)
     local state = inventory.state(params)
     for _, line in ipairs(inventory.utterances(state, open_menu)) do
+      speech.say(line)
+    end
+    open_menu = state
+    open_prompt = nil
+    open_screen = nil
+  end,
+})
+
+-- The advanced inventory, the screen items are moved on: two panes side by
+-- side, one holding the cursor and one receiving. It is not built on
+-- inventory_selector and it is not a uilist, so it needs a firing point of its
+-- own -- see src/advanced_inventory_hook.h.
+--
+-- Everything that screen is is drawn rather than written: which pane is active,
+-- which square each is aimed at, which square a row came from. So the pair of
+-- places is said whenever it changes, and the wording lives in
+-- lib/advanced_inventory.lua, composing the menu's reading model.
+--
+-- Its state goes into the same variable as the menu's, for the reason the
+-- inventory's does: whichever screen is on top holds the keyboard, and arriving
+-- back at the one underneath is arriving.
+game.add_hook("on_advanced_inventory", {
+  priority = 100,
+  fn = function(params)
+    local state = advanced_inventory.state(params)
+    for _, line in ipairs(advanced_inventory.utterances(state, open_menu)) do
       speech.say(line)
     end
     open_menu = state
