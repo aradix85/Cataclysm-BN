@@ -10,6 +10,7 @@
 #include "game.h"
 #include "ime.h"
 #include "inventory.h"
+#include "inventory_hook.h"
 #include "itype.h"
 #include "item.h"
 #include "item_category.h"
@@ -1971,6 +1972,8 @@ bool inventory_selector::has_available_choices() const
 inventory_input inventory_selector::get_input()
 {
     inventory_input res;
+
+    cata::fire_on_inventory( *this );
 
     res.action = ctxt.handle_input();
     res.ch = ctxt.get_raw_input().get_first_input();

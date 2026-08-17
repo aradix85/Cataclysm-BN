@@ -35,6 +35,7 @@ constexpr auto hook_names = std::array
     "on_game_load",
     "on_game_save",
     "on_game_started",
+    "on_inventory",
     "on_keybindings",
     "on_main_menu",
     "on_make_mapgen_factory_list",

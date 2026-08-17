@@ -28,6 +28,7 @@ local speech = require("./lib/speech")
 local errors = require("./lib/errors")
 local prompts = require("./lib/prompts")
 local menus = require("./lib/menus")
+local inventory = require("./lib/inventory")
 local keybindings = require("./lib/keybindings")
 local opening = require("./lib/opening")
 local messages = require("./lib/messages")
@@ -173,6 +174,33 @@ local function speak_menu(params)
 end
 
 game.add_hook("on_uilist", { priority = 100, fn = speak_menu })
+
+-- The inventory screens, which are not uilists and need a firing point of their
+-- own -- see src/inventory_hook.h. Every one of them waits for a key in the same
+-- function, so the plain inventory, wield, wear, eat, drop, pick up and use all
+-- arrive here.
+--
+-- This is the system that had nothing at all: no hook, no message site, no
+-- cursor support upstream, so a player without sight opened it and heard
+-- silence whatever they pressed.
+--
+-- Its state goes into the same variable as the menu's, because whichever of the
+-- two is on screen holds the keyboard and they cannot both be open. It matters
+-- most on the way back: the action menu opens the inventory, and closing the
+-- inventory leaves that menu underneath, which then announces itself again
+-- because what is remembered is no longer what is on screen.
+game.add_hook("on_inventory", {
+  priority = 100,
+  fn = function(params)
+    local state = inventory.state(params)
+    for _, line in ipairs(inventory.utterances(state, open_menu)) do
+      speech.say(line)
+    end
+    open_menu = state
+    open_prompt = nil
+    open_screen = nil
+  end,
+})
 
 -- The game's own key list, which every screen but one opens on the question
 -- mark, and which is also where a key is rebound. It is not a uilist and needs

@@ -470,6 +470,14 @@ class inventory_selector
         void set_hint( const std::string &hint ) {
             this->hint = hint;
         }
+        /** The title shown on top of the menu. Read by the accessibility layer; see src/inventory_hook.h. */
+        const std::string &get_title() const {
+            return title;
+        }
+        /** The preset the columns draw with, so a row can be read exactly as it is drawn. */
+        const inventory_selector_preset &get_preset() const {
+            return preset;
+        }
         /** Specify whether the header should show stats (weight and volume). */
         void set_display_stats( bool display_stats ) {
             this->display_stats = display_stats;
