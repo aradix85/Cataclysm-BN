@@ -31,6 +31,7 @@ local menus = require("./lib/menus")
 local inventory = require("./lib/inventory")
 local advanced_inventory = require("./lib/advanced_inventory")
 local describe = require("./lib/describe")
+local direction = require("./lib/direction")
 local exits = require("./lib/exits")
 local keybindings = require("./lib/keybindings")
 local opening = require("./lib/opening")
@@ -155,6 +156,10 @@ game.add_hook("on_add_msg", {
 local open_prompt = nil
 local open_menu = nil
 local open_screen = nil
+-- The direction question is kept beside them and for the same reason. It is not a
+-- query_popup and cannot be one, so it holds the keyboard without any of the three
+-- above knowing, and it is the one prompt in the game a verb raises by itself.
+local open_direction = nil
 
 -- A blocking prompt speaks itself. By the time this fires the game has already
 -- taken the keyboard, so an announcement is not an interruption, it is the only
@@ -167,6 +172,25 @@ game.add_hook("on_query_popup", {
       speech.say(line)
     end
     open_prompt = state
+    open_menu = nil
+    open_screen = nil
+  end,
+})
+
+-- The question a verb asks when it needs a square to act on: open, close, grab,
+-- smash, peek, and most of what an item is used on. It is not a query_popup, so
+-- nothing above reaches it, and no key of ours works while it is up -- its context
+-- takes the directions and little else. Whatever has to be known is said here or
+-- nowhere.
+game.add_hook("on_direction_prompt", {
+  priority = 100,
+  fn = function(params)
+    local state = direction.state(params)
+    for _, line in ipairs(direction.utterances(state, open_direction)) do
+      speech.say(line)
+    end
+    open_direction = state
+    open_prompt = nil
     open_menu = nil
     open_screen = nil
   end,
@@ -335,6 +359,11 @@ game.add_hook("on_play_input", {
     open_prompt = nil
     open_menu = nil
     open_screen = nil
+    -- The direction question is forgotten here and nowhere else. Inside one of them
+    -- a key that does not answer fires again and must not explain itself twice; once
+    -- the world has the keyboard the next one is a fresh question, and a verb met
+    -- again after an hour is owed the same answer as the first time.
+    open_direction = nil
   end,
 })
 
