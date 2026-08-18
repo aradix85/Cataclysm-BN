@@ -32,6 +32,7 @@ constexpr auto hook_names = std::array
     "on_dialogue_end",
     "on_dialogue_option",
     "on_dialogue_start",
+    "on_direction_prompt",
     "on_elevator_try_use",
     "on_explosion_start",
     "on_game_load",

@@ -18,6 +18,7 @@
 #include "creature.h"
 #include "cursesdef.h"
 #include "debug.h"
+#include "direction_hook.h"
 #include "enum_conversions.h"
 #include "flag.h"
 #include "game.h"
@@ -1282,6 +1283,7 @@ std::optional<tripoint_rel_ms> choose_direction( const std::string &message,
     std::string action;
     do {
         ui_manager::redraw();
+        cata::fire_on_direction_prompt( message, allow_vertical, action );
         action = ctxt.handle_input();
         if( const std::optional<tripoint_rel_ms> vec = ctxt.get_direction( action ) ) {
             // Make player's sprite face left/right if interacting with something to the left or right
