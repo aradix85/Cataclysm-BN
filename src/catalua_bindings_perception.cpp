@@ -8,6 +8,7 @@
 #include "catalua_luna_doc.h"
 #include "character.h"
 #include "creature.h"
+#include "lightmap.h"
 #include "map.h"
 #include "map_memory.h"
 #include "mapdata.h"
@@ -161,11 +162,15 @@ void reg_perception( sol::state &lua )
          "that reports what is out there -- without it a layer would answer about a staircase "
          "behind a wall in a room nobody has entered, which no player with sight can do." );
     luna::set_fx( lib, "knows_square", []( const tripoint_bub_ms & p ) -> bool {
-        avatar &you = get_avatar();
-        if( you.sees( p ) ) {
-            return true;
-        }
-        return !you.get_memorized_tile( bub_to_abs( p ) ).tile.empty();
+        return cata::access::knows_square( p );
+    } );
+
+    DOC( "Whether a map square is unlit, by the same threshold the game itself uses to decide "
+         "that light has run out. This is about the world rather than about her eyes, and it "
+         "is the reason a report stops where it does: in the dark she knows nothing beyond "
+         "her own square, which a sighted player reads off a black screen in one glance." );
+    luna::set_fx( lib, "is_unlit_at", []( const tripoint_bub_ms & p ) -> bool {
+        return get_map().ambient_light_at( p ) < LIGHT_AMBIENT_LOW;
     } );
 
     DOC( "Every way out of the place she is standing in that she knows of, nearest first: "

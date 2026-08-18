@@ -1,10 +1,34 @@
 #pragma once
 
+#include "coordinates.h"
+
 #include <string>
 #include <vector>
 
 namespace cata::access
 {
+
+/**
+ * Whether the character has any memory of a map square.
+ *
+ * The game keeps what it has drawn in two forms and fills exactly one of them: the
+ * tileset renderer writes a tile name, the text display writes a symbol. Asking
+ * about the tile alone answers "never seen" for every square of a game played
+ * without a tileset -- which is how this layer forgot a corridor the moment its
+ * player walked out of it. The game's own `has_memory_at` asks both, and so does
+ * this.
+ */
+bool remembers_square( const tripoint_abs_ms &p );
+
+/**
+ * Whether the character knows a square at all: she can see it now, or she has seen
+ * it before and the map remembered it.
+ *
+ * The filter every report about the world passes through, so that the layer reads
+ * the game to her rather than playing it for her. Sight is asked second because it
+ * is the expensive half.
+ */
+bool knows_square( const tripoint_bub_ms &p );
 
 /**
  * The place the character is standing in, as a whole rather than as the square

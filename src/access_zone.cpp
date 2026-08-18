@@ -19,6 +19,17 @@
 namespace cata::access
 {
 
+bool remembers_square( const tripoint_abs_ms &p )
+{
+    avatar &you = get_avatar();
+    return !you.get_memorized_tile( p ).tile.empty() || you.get_memorized_symbol( p ) != 0;
+}
+
+bool knows_square( const tripoint_bub_ms &p )
+{
+    return remembers_square( bub_to_abs( p ) ) || get_avatar().sees( p );
+}
+
 namespace
 {
 
@@ -93,7 +104,7 @@ zone_report zone_around_player()
     int seen_bottom = here.y();
     for( int y = top; y <= bottom; ++y ) {
         for( int x = left; x <= right; ++x ) {
-            if( you.get_memorized_tile( tripoint_abs_ms( x, y, here.z() ) ).tile.empty() ) {
+            if( !remembers_square( tripoint_abs_ms( x, y, here.z() ) ) ) {
                 continue;
             }
             seen_left = std::min( seen_left, x );
@@ -145,7 +156,7 @@ std::vector<zone_exit> exits_in_zone()
             // Seen now, or seen once and remembered. The order matters for cost:
             // line of sight is the expensive question and is asked last, of the few
             // squares that turned out to be a way out at all.
-            if( you.get_memorized_tile( bub_to_abs( p ) ).tile.empty() && !you.sees( p ) ) {
+            if( !knows_square( p ) ) {
                 continue;
             }
 
