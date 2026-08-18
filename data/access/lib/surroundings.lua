@@ -80,6 +80,24 @@ local function reach_line(reach)
   return "Space: " .. table.concat(parts, ", ") .. "."
 end
 
+--- That she cannot see, said before anything she cannot see is reported.
+---
+--- The one sentence here whose subject is her own eyes rather than the world, and
+--- it earns that: unlit is why every other answer stops one square out. Without it
+--- the room reads as four unexplored directions, which is a different thing
+--- entirely -- one is a place she has not been, the other is a place she is standing
+--- in and cannot see. A sighted player is told this by a black screen and never has
+--- to ask.
+---
+--- Said about the world rather than about her sight range, so it stays true for a
+--- character who can see in the dark: the place is unlit either way.
+--- @param around table { dark = boolean|nil }
+--- @return string|nil
+local function dark_line(around)
+  if not around.dark then return nil end
+  return "Dark."
+end
+
 --- How far the room goes, said before the list of what is in it.
 ---
 --- Everything else about the surroundings is a list now -- enemies, creatures, the
@@ -89,9 +107,15 @@ end
 --- @param around table { reach = { north = { steps, blocked, unknown }, ... } }
 --- @return string[]
 surroundings.space = function(around)
+  local out = {}
+
+  local dark = dark_line(around)
+  if dark then out[#out + 1] = dark end
+
   local line = reach_line(around.reach)
-  if not line then return {} end
-  return { line }
+  if line then out[#out + 1] = line end
+
+  return out
 end
 
 --- What to say about the surroundings, as sentences.
@@ -107,6 +131,9 @@ surroundings.overview = function(around)
 
   local area = around.area or ""
   if area ~= "" then out[#out + 1] = area:sub(1, 1):upper() .. area:sub(2) .. "." end
+
+  local dark = dark_line(around)
+  if dark then out[#out + 1] = dark end
 
   local reach = reach_line(around.reach)
   if reach then out[#out + 1] = reach end
@@ -132,7 +159,7 @@ surroundings.overview = function(around)
 
   -- Where she is is not an answer to "what is around me", so the empty word is
   -- still owed when nothing else was found.
-  local placed = (area ~= "" and 1 or 0) + (reach and 1 or 0)
+  local placed = (area ~= "" and 1 or 0) + (dark and 1 or 0) + (reach and 1 or 0)
   if #out == placed then out[#out + 1] = "Nothing nearby." end
   return out
 end

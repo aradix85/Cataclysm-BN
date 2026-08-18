@@ -120,3 +120,36 @@ check.equal(
   "Space: north 4 or more, east 2, south blocked, west open. / Nothing nearby.",
   "A direction she has not been far enough along to know is said as a floor, not as open ground"
 )
+
+check.equal(
+  say(surroundings.overview({
+    area = "subway",
+    dark = true,
+    reach = {
+      north = { steps = 1, blocked = false, unknown = true },
+      east = { steps = 1, blocked = false, unknown = true },
+      south = { steps = 1, blocked = false, unknown = true },
+      west = { steps = 1, blocked = false, unknown = true },
+    },
+  })),
+  "Subway. / Dark. / Space: north 1 or more, east 1 or more, south 1 or more, west 1 or more. / Nothing nearby.",
+  "An unlit place is said before the room is measured in it, because it is why every arm stops one square out"
+)
+
+check.equal(
+  say(surroundings.overview({ dark = true, enemies = {}, others = {}, landmarks = {} })),
+  "Dark. / Nothing nearby.",
+  "Saying it is dark is not an answer to what is around her, so the empty word is still owed"
+)
+
+check.equal(
+  say(surroundings.overview({ area = "field", reach = reach(3, 3, 3, 3) })),
+  "Field. / Space: north 3, east 3, south 3, west 3. / Nothing nearby.",
+  "Where there is light nothing is said about light, since a lit room is the ordinary case"
+)
+
+check.equal(
+  say(surroundings.space({ dark = true })),
+  "Dark.",
+  "The darkness is owed even where there is no room measurement to explain, which is how a caller with no reach still hears it"
+)

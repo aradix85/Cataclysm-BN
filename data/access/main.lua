@@ -613,6 +613,11 @@ local function collect()
 
   return {
     area = perception.area_name_at(at),
+    -- Whether the square she stands on is unlit, which is the reason every other
+    -- answer here stops where it does. A sighted player reads it off a black screen
+    -- in a glance and never has to be told; without it the room measurement stops
+    -- at one square in every direction with nothing to explain why.
+    dark = perception.is_unlit_at(at),
     -- Which way the room lets her walk, and how far. Four directions and not eight:
     -- a frame has to be held in the head while she walks it, and four is what fits.
     reach = {
