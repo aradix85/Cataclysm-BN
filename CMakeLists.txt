@@ -917,6 +917,24 @@ if (RELEASE)
         install(FILES
             ${CMAKE_SOURCE_DIR}/build-data/bn-access/options.json
             DESTINATION config)
+
+        # The speech itself, and the reason a downloaded build talks at all.
+        #
+        # src/tts.cpp calls LoadLibraryW on this by name and treats its absence
+        # as silence rather than as a crash, so a package without it starts,
+        # plays, and says nothing -- the failure that looks like the layer being
+        # broken and is really a missing file. Windows searches the folder the
+        # executable sits in first, which is where this puts it, so no launcher,
+        # no PATH and no install step is asked of the player.
+        #
+        # x64 to match the only Windows build this fork makes. LGPL 2.1, so the
+        # licence travels with it; the library is bundled unmodified.
+        if (WIN32)
+            install(FILES
+                ${CMAKE_SOURCE_DIR}/build-data/bn-access/nvdaControllerClient.dll
+                ${CMAKE_SOURCE_DIR}/build-data/bn-access/license_nvda_controllerclient.txt
+                DESTINATION .)
+        endif()
     endif()
     if (TILES)
         if (USE_PREFIX_DATA_DIR)
