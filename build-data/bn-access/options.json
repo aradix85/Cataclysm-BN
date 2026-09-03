@@ -1,0 +1,31 @@
+[
+  {
+    "//": "What a player using a screen reader needs before they can reach the screen that would let them ask for it. Copied into config/ of a packaged build. The game applies a partial options file and keeps its own default for everything left out, so this is deliberately short: anything that is taste rather than access -- keyboard, braille display, mod list, window size, sound effects -- stays out and stays theirs.",
+    "name": "USE_LANG",
+    "value": "en_US"
+  },
+  {
+    "//": "The first screen of a first run is a language picker that draws its own window and speaks nothing at all. Answering it here is what stops a new player meeting a silent wall before the layer has even loaded.",
+    "name": "USE_TILES",
+    "value": "false"
+  },
+  {
+    "//": "Tiles and the pixel minimap draw a picture over the text the screen reader takes its output from.",
+    "name": "PIXEL_MINIMAP",
+    "value": "false"
+  },
+  {
+    "name": "ANIMATIONS",
+    "value": "false"
+  },
+  {
+    "//": "An animation redraws the screen over and over, and every redraw is speech starting again from the top; the delay decides how long that goes on.",
+    "name": "ANIMATION_DELAY",
+    "value": "0"
+  },
+  {
+    "//": "Music plays over speech and cannot be talked across. Sound effects are deliberately left at their default: they carry information and do not compete for the same channel.",
+    "name": "MUSIC_VOLUME",
+    "value": "0"
+  }
+]

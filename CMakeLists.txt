@@ -899,6 +899,24 @@ if (RELEASE)
             ${CMAKE_SOURCE_DIR}/LICENSE-OFL-Terminus-Font.txt
             ${CMAKE_SOURCE_DIR}/VERSION.txt
             DESTINATION .)
+
+        # Fork-only, and only in this branch on purpose.
+        #
+        # Without a prefix data dir the package is portable: the folder it is
+        # unzipped into is also the folder the game reads config/ from, so a file
+        # placed here is the settings a first run starts with. That first run is
+        # the one screen nobody can help with -- a language picker that draws its
+        # own window and says nothing -- and behind it are tiles over the text,
+        # music over the speech and animations restarting it. Everything a
+        # download aimed at blind players needs before it can be configured at
+        # all, and nothing that belongs to whoever configured it.
+        #
+        # Not the owner's own config/, which is gitignored because the game
+        # rewrites it on every exit and which carries her keyboard, her braille
+        # display and her mod list.
+        install(FILES
+            ${CMAKE_SOURCE_DIR}/build-data/bn-access/options.json
+            DESTINATION config)
     endif()
     if (TILES)
         if (USE_PREFIX_DATA_DIR)
