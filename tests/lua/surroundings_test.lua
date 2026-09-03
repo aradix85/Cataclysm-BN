@@ -1,8 +1,11 @@
--- Bearings and the surroundings overview, against the modules the mod loads.
--- Assertions live on the C++ side.
+-- Bearings, against the modules the mod loads. Assertions live on the C++ side.
+--
+-- What is around her is no longer grouped into sentences here: creatures and items
+-- are the game's own list on its own key, and the ways out are rows read one at a
+-- time. Only the bearing words survive, and they are the part no player can check
+-- for themselves.
 
 local bearing = require("../../data/access/lib/bearing")
-local surroundings = require("../../data/access/lib/surroundings")
 
 -- All eight points. x runs east, y runs south, so north is negative y.
 test_data.east = bearing.of(3, 0)
@@ -22,27 +25,6 @@ test_data.zero = tostring(bearing.of(0, 0))
 -- A diagonal counts as one step, as it does when walking.
 test_data.diagonal_distance = bearing.distance(3, -3)
 test_data.described = bearing.describe(4, -4)
-
--- Enemies first, one utterance per group, nearest named (P2, P4).
-test_data.overview = table.concat(
-  surroundings.overview({
-    enemies = {
-      { name = "zombie", dx = 4, dy = -4 },
-      { name = "zombie dog", dx = 9, dy = 0 },
-      { name = "skeleton", dx = 2, dy = 2 },
-    },
-    others = { { name = "rabbit", dx = 6, dy = 6 } },
-    landmarks = { { name = "closed wood door", dx = 3, dy = 0 } },
-  }),
-  " / "
-)
-
--- One of something reads as one, not as a count with a nearest.
-test_data.single = table.concat(surroundings.overview({ enemies = { { name = "zombie", dx = 0, dy = -2 } } }), " / ")
-
--- Asked and answered: an empty field says so rather than staying silent, which
--- cannot be told apart from a key that never arrived.
-test_data.empty = table.concat(surroundings.overview({}), " / ")
 
 -- What a step reports, and what it does not.
 

@@ -1,43 +1,15 @@
 -- Turning what was collected around the player into what is said about it.
 --
--- Pure: a table in, a list of utterances out. No game state, no gapi.
+-- Pure: a table in, a list of strings out. No game state, no gapi.
 --
--- Grouped by kind and never in map order (P4), enemies first because they are
--- the only thing that can kill you this turn. One utterance per group (F1), name
--- first within it (P2), and the whole thing bounded to a few lines (F5): this is
--- the overview, not the list.
-
-local bearing = require("./bearing")
+-- What is left here is the frame of the room and nothing else: whether she can see,
+-- and how far each way lets her walk. What is standing and lying about used to be
+-- grouped and spoken here too, and that was a second reading of a world the game
+-- already lists on its own key -- which is what made one question feel like three
+-- systems. Creatures and items are the game's own list; the ways out are the rows
+-- this frame sits on top of.
 
 local surroundings = {}
-
---- @param entries table[] each { name, dx, dy }
---- @return table|nil the closest entry, nil when there are none
-local function nearest_of(entries)
-  local best, best_distance = nil, nil
-  for _, entry in ipairs(entries) do
-    local distance = bearing.distance(entry.dx, entry.dy)
-    if not best_distance or distance < best_distance then
-      best, best_distance = entry, distance
-    end
-  end
-  return best
-end
-
-local function group_line(entries, singular, plural)
-  local nearest = nearest_of(entries)
-  -- Empty is silence (P5), and asking for the nearest is how that is known.
-  if not nearest then return nil end
-  local where = bearing.describe(nearest.dx, nearest.dy)
-  local what = nearest.name
-
-  if #entries == 1 then
-    if where then return string.format("1 %s. %s, %s.", singular, what, where) end
-    return string.format("1 %s. %s, here.", singular, what)
-  end
-  if where then return string.format("%d %s. Nearest: %s, %s.", #entries, plural, what, where) end
-  return string.format("%d %s. Nearest: %s, here.", #entries, plural, what)
-end
 
 --- How far the room goes, as a compass sweep.
 ---
@@ -115,52 +87,6 @@ surroundings.space = function(around)
   local line = reach_line(around.reach)
   if line then out[#out + 1] = line end
 
-  return out
-end
-
---- What to say about the surroundings, as sentences.
----
---- Kept for the cases where a list would be too much machinery for the answer, and
---- because it is what the groups' wording is asserted through: grouped by kind and
---- never in map order (P4), enemies first, one utterance per group (F1), name first
---- within it (P2).
---- @param around table { area, reach, enemies, others, landmarks, ways_up, ways_down }
---- @return string[]
-surroundings.overview = function(around)
-  local out = {}
-
-  local area = around.area or ""
-  if area ~= "" then out[#out + 1] = area:sub(1, 1):upper() .. area:sub(2) .. "." end
-
-  local dark = dark_line(around)
-  if dark then out[#out + 1] = dark end
-
-  local reach = reach_line(around.reach)
-  if reach then out[#out + 1] = reach end
-
-  local enemies = group_line(around.enemies or {}, "enemy", "enemies")
-  if enemies then out[#out + 1] = enemies end
-
-  local others = group_line(around.others or {}, "creature", "creatures")
-  if others then out[#out + 1] = others end
-
-  local landmarks = group_line(around.landmarks or {}, "way out", "ways out")
-  if landmarks then out[#out + 1] = landmarks end
-
-  -- Stairs last, and apart from the doors: a door leads to the next room and a
-  -- staircase leads out of this place entirely, usually into somewhere with
-  -- another name. Which way they go is the whole of what makes them worth
-  -- walking to, so up and down are never one group.
-  local up = group_line(around.ways_up or {}, "way up", "ways up")
-  if up then out[#out + 1] = up end
-
-  local down = group_line(around.ways_down or {}, "way down", "ways down")
-  if down then out[#out + 1] = down end
-
-  -- Where she is is not an answer to "what is around me", so the empty word is
-  -- still owed when nothing else was found.
-  local placed = (area ~= "" and 1 or 0) + (dark and 1 or 0) + (reach and 1 or 0)
-  if #out == placed then out[#out + 1] = "Nothing nearby." end
   return out
 end
 

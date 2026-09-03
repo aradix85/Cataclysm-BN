@@ -40,29 +40,31 @@ zone.state = function(report)
   }
 end
 
---- The place and its size. Tiles first because that is what the overmap calls it,
---- then the same thing in steps, which is what walking it costs.
-local function heading(state)
+--- The place and its size, as the heading of the list the ways out are read in.
+---
+--- No full stop: the reading model puts the number of rows after it, and a place
+--- that names itself twice in one utterance is the noise this list exists to end.
+--- Tiles because that is what the overmap calls the same place.
+zone.title = function(state)
   local name = text.is_speakable(state.name) and state.name or "Here"
   name = name:sub(1, 1):upper() .. name:sub(2)
 
   local tiles = state.tiles_wide * state.tiles_high
-  if tiles <= 1 then return name .. ", 1 tile." end
-  return string.format("%s, %d by %d tiles.", name, state.tiles_wide, state.tiles_high)
-end
-
---- How far it runs from her, in steps, as the same compass sweep the surroundings
---- use, so that two answers about the same world are read the same way.
-local function extent(state)
-  return string.format("Runs north %d, east %d, south %d, west %d.",
-    state.reach.north, state.reach.east, state.reach.south, state.reach.west)
+  if tiles <= 1 then return name .. ", 1 tile" end
+  return string.format("%s, %d by %d tiles", name, state.tiles_wide, state.tiles_high)
 end
 
 --- Which way there is still something to find.
 ---
 --- Named directions rather than a figure: the number would have to be turned into a
 --- direction in her head, and the direction is the whole of what the answer is for.
-local function unexplored(state)
+---
+--- How far the place runs is not said beside it. It was, and it was a second compass
+--- sweep in the same breath as the one that says how far the room lets her walk --
+--- two answers that sound alike, mean different things and have to be told apart
+--- while walking. The room's reach is the one she acts on; this says where there is
+--- more of the place than she has met.
+zone.unexplored = function(state)
   local out = {}
   for _, side in ipairs({ "north", "east", "south", "west" }) do
     if state.reach[side] - state.seen[side] >= UNSEEN_MARGIN then out[#out + 1] = side end
@@ -73,13 +75,6 @@ local function unexplored(state)
 
   local last = table.remove(out)
   return string.format("Unexplored to the %s and %s.", table.concat(out, ", "), last)
-end
-
---- What to say about where she is.
---- @param state table normalised by zone.state
---- @return string[]
-zone.utterances = function(state)
-  return { heading(state), extent(state), unexplored(state) }
 end
 
 return zone

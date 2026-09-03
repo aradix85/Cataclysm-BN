@@ -5,6 +5,10 @@
 #include "map.h"
 #include "map_helpers.h"
 #include "player_helpers.h"
+#include "type_id.h"
+
+#include <algorithm>
+#include <vector>
 
 // What the layer is allowed to report about the world, and it is one question: does
 // she know this square at all. Everything answering about doors, stairs, how far a
@@ -75,4 +79,35 @@ TEST_CASE("access_zone_counts_what_she_can_see_as_known", "[lua]") {
 
     CHECK(cata::access::knows_square(here));
     CHECK_FALSE(cata::access::remembers_square(bub_to_abs(unseen_square(11))));
+}
+
+// A way out is a way out whether it stands open or shut, and the DOOR flag sits on
+// the closed form alone. Asking for that flag and nothing else therefore loses the
+// door at the exact moment she opens it and steps into it -- which is the moment
+// she asks where she is and what leads out. The open form is recognised by what it
+// closes into instead, and her own square is answered rather than skipped.
+TEST_CASE("access_zone_reports_an_open_door_and_the_one_under_her_feet", "[lua]") {
+    clear_avatar();
+    clear_map();
+
+    avatar& you = get_avatar();
+    map& here = get_map();
+    const tripoint_bub_ms at = you.bub_pos();
+    const tripoint_bub_ms east(at.x() + 1, at.y(), at.z());
+
+    here.ter_set(at, ter_id("t_door_o"));
+    here.ter_set(east, ter_id("t_door_c"));
+    here.update_visibility_cache(at.z());
+    you.memorize_tile(bub_to_abs(east), "t_door_c", 0, 0);
+
+    const std::vector<cata::access::zone_exit> ways = cata::access::exits_in_zone();
+
+    const auto door_at = [&ways](const int dx, const int dy) {
+        return std::ranges::any_of(ways, [&](const cata::access::zone_exit& way) {
+            return way.dx == dx && way.dy == dy && way.kind == "door";
+        });
+    };
+
+    CHECK(door_at(0, 0));
+    CHECK(door_at(1, 0));
 }

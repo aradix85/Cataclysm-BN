@@ -3,15 +3,8 @@
     "id": "bn_access_surroundings",
     "type": "keybinding",
     "category": "DEFAULTMODE",
-    "name": "Accessibility: what is around me",
+    "name": "Accessibility: where am I and what leads out",
     "bindings": [ { "input_method": "keyboard", "key": "F9" } ]
-  },
-  {
-    "id": "bn_access_zone",
-    "type": "keybinding",
-    "category": "DEFAULTMODE",
-    "name": "Accessibility: where am I",
-    "bindings": [ { "input_method": "keyboard", "key": "F10" } ]
   },
   {
     "id": "bn_access_places",

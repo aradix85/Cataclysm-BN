@@ -5,6 +5,11 @@
 -- way to learn that a walk has arrived somewhere was to open the overmap and come
 -- back, which is a screen round trip for a fact the game already knows.
 --
+-- Asking is the frame of the room and nothing else: whether she can see, and how
+-- far each way lets her walk. What is standing and lying about is the game's own
+-- list on its own key, and the ways out are rows under this frame -- see
+-- exits_test.lua.
+--
 -- Both modules are pure: a table in, a list of strings out.
 
 local movement = require("../../../data/access/lib/movement")
@@ -36,29 +41,6 @@ check.equal(
   "A refused step names what stopped it and nothing else: no step was taken, so no region was entered"
 )
 
-check.equal(
-  say(surroundings.overview({ area = "forest", enemies = {}, others = {}, landmarks = {} })),
-  "Forest. / Nothing nearby.",
-  "Asking what is around says where she is first, and still owes the empty word for the question itself"
-)
-
-check.equal(
-  say(surroundings.overview({
-    area = "overgrown cabin",
-    enemies = { { name = "zombie", dx = 3, dy = -3 } },
-    others = {},
-    landmarks = {},
-  })),
-  "Overgrown cabin. / 1 enemy. zombie, 3 northeast.",
-  "The region comes before the enemies, and the enemies still come before everything else"
-)
-
-check.equal(
-  say(surroundings.overview({ enemies = {}, others = {}, landmarks = {} })),
-  "Nothing nearby.",
-  "With no region given the answer is what it always was, so a caller that cannot ask still gets one"
-)
-
 --- The room as the layer measures it: how far each way before something stops her.
 local function reach(n, e, s, w)
   local function arm(v)
@@ -69,47 +51,19 @@ local function reach(n, e, s, w)
 end
 
 check.equal(
-  say(surroundings.overview({ area = "subway", reach = reach(3, 7, 0, 2) })),
-  "Subway. / Space: north 3, east 7, south blocked, west 2. / Nothing nearby.",
+  say(surroundings.space({ reach = reach(3, 7, 0, 2) })),
+  "Space: north 3, east 7, south blocked, west 2.",
   "The room is read as a fixed compass sweep, so a corridor running east is hearable as one"
 )
 
 check.equal(
-  say(surroundings.overview({ reach = reach(nil, nil, 1, 1) })),
-  "Space: north open, east open, south 1, west 1. / Nothing nearby.",
+  say(surroundings.space({ reach = reach(nil, nil, 1, 1) })),
+  "Space: north open, east open, south 1, west 1.",
   "A direction nothing stopped her in is a different fact from a long corridor, and is said as one"
 )
 
 check.equal(
-  say(surroundings.overview({
-    area = "field",
-    reach = reach(2, 2, 2, 2),
-    enemies = { { name = "zombie", dx = 0, dy = -3 } },
-  })),
-  "Field. / Space: north 2, east 2, south 2, west 2. / 1 enemy. zombie, 3 north.",
-  "Where she is comes first and what is in it after, and the empty word is not owed once something was found"
-)
-
-check.equal(
-  say(surroundings.overview({
-    area = "subway station",
-    ways_up = { { name = "stairs", dx = -20, dy = 5 } },
-  })),
-  "Subway station. / 1 way up. stairs, 20 west.",
-  "Stairs are said as a way out of the place itself, with which way they go, since that is what makes them worth crossing a room for"
-)
-
-check.equal(
-  say(surroundings.overview({
-    landmarks = { { name = "wooden door", dx = 3, dy = 0 } },
-    ways_down = { { name = "stairs", dx = 0, dy = -8 }, { name = "manhole", dx = 9, dy = 9 } },
-  })),
-  "1 way out. wooden door, 3 east. / 2 ways down. Nearest: stairs, 8 north.",
-  "Doors and stairs are never one group: one leads to the next room and the other out of this place"
-)
-
-check.equal(
-  say(surroundings.overview({
+  say(surroundings.space({
     reach = {
       north = { steps = 4, blocked = false, unknown = true },
       east = { steps = 2, blocked = true },
@@ -117,34 +71,19 @@ check.equal(
       west = { steps = 12, blocked = false },
     },
   })),
-  "Space: north 4 or more, east 2, south blocked, west open. / Nothing nearby.",
+  "Space: north 4 or more, east 2, south blocked, west open.",
   "A direction she has not been far enough along to know is said as a floor, not as open ground"
 )
 
 check.equal(
-  say(surroundings.overview({
-    area = "subway",
-    dark = true,
-    reach = {
-      north = { steps = 1, blocked = false, unknown = true },
-      east = { steps = 1, blocked = false, unknown = true },
-      south = { steps = 1, blocked = false, unknown = true },
-      west = { steps = 1, blocked = false, unknown = true },
-    },
-  })),
-  "Subway. / Dark. / Space: north 1 or more, east 1 or more, south 1 or more, west 1 or more. / Nothing nearby.",
+  say(surroundings.space({ dark = true, reach = reach(1, 1, 1, 1) })),
+  "Dark. / Space: north 1, east 1, south 1, west 1.",
   "An unlit place is said before the room is measured in it, because it is why every arm stops one square out"
 )
 
 check.equal(
-  say(surroundings.overview({ dark = true, enemies = {}, others = {}, landmarks = {} })),
-  "Dark. / Nothing nearby.",
-  "Saying it is dark is not an answer to what is around her, so the empty word is still owed"
-)
-
-check.equal(
-  say(surroundings.overview({ area = "field", reach = reach(3, 3, 3, 3) })),
-  "Field. / Space: north 3, east 3, south 3, west 3. / Nothing nearby.",
+  say(surroundings.space({ reach = reach(3, 3, 3, 3) })),
+  "Space: north 3, east 3, south 3, west 3.",
   "Where there is light nothing is said about light, since a lit room is the ordinary case"
 )
 
@@ -152,4 +91,10 @@ check.equal(
   say(surroundings.space({ dark = true })),
   "Dark.",
   "The darkness is owed even where there is no room measurement to explain, which is how a caller with no reach still hears it"
+)
+
+check.equal(
+  say(surroundings.space({})),
+  "",
+  "A lit room nothing was measured in says nothing at all, and the list it heads is what answers instead"
 )

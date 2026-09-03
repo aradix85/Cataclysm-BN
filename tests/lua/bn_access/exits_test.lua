@@ -50,7 +50,7 @@ check.equal(
 
 check.equal(
   say(exits.state({ { name = "gate", kind = "door", dx = 0, dy = 0 } }, 1, nil), nil),
-  "Here, 1 entry. / gate, here, 1 of 1.",
+  "Here, 1 entry. / gate, you are here, 1 of 1.",
   "A list opened without a name still answers, and a way out underfoot says so rather than giving a bearing of zero"
 )
 
@@ -82,4 +82,26 @@ check.equal(
   say(exits.state({ { name = "subway station", count = 1, dx = 0, dy = 5, tiles = true } }, 1, "Known places"), nil),
   "Known places, 1 entry. / subway station, 5 tiles south, 1 of 1.",
   "One of a kind carries no count, since the number would say nothing the row does not"
+)
+
+-- The frame the list opens with, and the doorway under her feet: the two rows that
+-- are not a place a bearing can point at.
+
+local frame = {
+  { name = "Space: north 4, east open, south blocked, west 1." },
+  { name = "Unexplored to the north." },
+  { name = "open wood door", kind = "door", dx = 0, dy = 0 },
+  { name = "wooden door", kind = "door", dx = 3, dy = 0 },
+}
+
+check.equal(
+  say(exits.state(frame, 1, "Evac shelter, 1 tile"), nil),
+  "Evac shelter, 1 tile, 4 entries. / Space: north 4, east open, south blocked, west 1., 1 of 4.",
+  "A row that states something rather than naming a place gets no position beside it, only its place in the list"
+)
+
+check.equal(
+  say(exits.state(frame, 3, "Evac shelter, 1 tile"), exits.state(frame, 2, "Evac shelter, 1 tile")),
+  "open wood door, you are here, 3 of 4.",
+  "The doorway she is standing in is a way out like any other and says so in the words the look cursor uses"
 )

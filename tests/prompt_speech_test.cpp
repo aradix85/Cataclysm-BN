@@ -115,20 +115,6 @@ TEST_CASE("bn_access_surroundings_overview", "[lua]") {
     CHECK(test_data["diagonal_distance"].get<int>() == 3);
     CHECK(result_of(lua, "described") == "4 northeast");
 
-    // Grouped, enemies first, one utterance per group, nearest named (P2, P4).
-    CHECK(
-        result_of(lua, "overview")
-        == "3 enemies. Nearest: skeleton, 2 southeast. / "
-           "1 creature. rabbit, 6 southeast. / "
-           "1 way out. closed wood door, 3 east.");
-
-    // One reads as one rather than as a count with a nearest attached.
-    CHECK(result_of(lua, "single") == "1 enemy. zombie, 2 north.");
-
-    // Asked and answered (P5 is about not volunteering emptiness, not about
-    // ignoring a question).
-    CHECK(result_of(lua, "empty") == "Nothing nearby.");
-
     // A refused move is the one case the game itself never reports: it assumes
     // the wall was seen. Without this, a direction key produces nothing at all
     // and cannot be told apart from a key that never arrived.

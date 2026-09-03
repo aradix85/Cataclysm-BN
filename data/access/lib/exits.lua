@@ -38,8 +38,17 @@ local KINDS = {
 --- screen and the same number in squares is a few seconds: the two scales read
 --- alike and mean nothing alike.
 local function place_words(row)
+  -- A row that is a statement rather than a place -- the frame at the top of the
+  -- list, which says where she is and how much room there is -- carries no offset
+  -- and is given no position beside it.
+  if not row.dx and not row.dy then return nil end
+
   local flat = bearing.describe(row.dx or 0, row.dy or 0)
-  if not flat then return "here" end
+  -- Nothing between her and it: the doorway she is standing in. Said in the words
+  -- the look cursor uses for her own square, because a bearing of zero would
+  -- otherwise read as no answer at all -- and because a door under her feet is the
+  -- one she has just walked into and most needs confirming.
+  if not flat then return "you are here" end
   if row.tiles then return flat:gsub("^(%d+)", "%1 tiles") end
   return flat
 end
@@ -54,7 +63,9 @@ local function entry_of(row)
   local kind = KINDS[row.kind]
   local name = row.name or ""
   local where = place_words(row)
-  if row.count and row.count > 1 then where = string.format("%d, nearest %s", row.count, where) end
+  if where and row.count and row.count > 1 then
+    where = string.format("%d, nearest %s", row.count, where)
+  end
   return { text = kind and (name .. " " .. kind) or name, column = where }
 end
 

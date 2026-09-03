@@ -95,21 +95,11 @@ game.add_hook("on_debugmsg", {
   end,
 })
 
--- How far the overview looks. Creatures are limited by what the character can
--- actually see; the terrain scan is a square of this radius, so it is also the
--- cost of the command -- keep it small enough that a keypress answers at once.
-local RANGE = 12
-local LANDMARK_RANGE = 8
 -- How far the room is measured in each direction. A room is ten squares across at
 -- most, so beyond this the answer stops being about the room she is standing in.
 local WALL_RANGE = 12
--- How far stairs are looked for. Further than a door, because a staircase is worth
--- crossing a room for and is the only thing nearby that leads out of this place
--- altogether.
-local STAIR_RANGE = 24
 
-gapi.register_default_mode_action("bn_access_surroundings", "Accessibility: what is around me")
-gapi.register_default_mode_action("bn_access_zone", "Accessibility: where am I")
+gapi.register_default_mode_action("bn_access_surroundings", "Accessibility: where am I and what leads out")
 gapi.register_default_mode_action("bn_access_places", "Accessibility: what places do I know")
 
 -- The world is ready and the game is about to read a key. A new game reaches
@@ -579,69 +569,20 @@ local function arm_of(at, dx, dy)
   return { steps = WALL_RANGE, blocked = false }
 end
 
--- Gathering what is around the player. The only impure part of the layer:
--- everything it produces is plain numbers and strings, which is what lets the
--- wording be asserted without a game.
+-- Gathering the frame of the room the player is standing in. The only impure part
+-- of the layer: everything it produces is plain numbers and strings, which is what
+-- lets the wording be asserted without a game.
+--
+-- Only the frame. What is standing and lying about was gathered here too, and it
+-- was a second reading of what the game already lists on its own key -- which is
+-- what turned one question into three systems to keep apart. The ways out are not
+-- gathered here either: perception.exits_in_zone walks the whole place rather than
+-- a radius, and one collector is the point.
 local function collect()
   local you = gapi.get_avatar()
-  local here = gapi.get_map()
   local at = you:get_pos_ms()
 
-  local function offset(pos) return pos.x - at.x, pos.y - at.y end
-
-  local enemies, others, landmarks = {}, {}, {}
-  local ways_up, ways_down = {}, {}
-
-  local hostile_at = {}
-  for _, critter in ipairs(you:get_hostile_creatures(RANGE)) do
-    local pos = critter:get_pos_ms()
-    hostile_at[pos.x .. ":" .. pos.y] = true
-    local dx, dy = offset(pos)
-    enemies[#enemies + 1] = { name = critter:get_name(), dx = dx, dy = dy }
-  end
-
-  for _, critter in ipairs(you:get_visible_creatures(RANGE)) do
-    local pos = critter:get_pos_ms()
-    if not hostile_at[pos.x .. ":" .. pos.y] then
-      local dx, dy = offset(pos)
-      others[#others + 1] = { name = critter:get_name(), dx = dx, dy = dy }
-    end
-  end
-
-  -- A door is the thing you need and cannot see: it is how you leave a room.
-  --
-  -- Only doors she knows about. The map holds every door in the building, and
-  -- answering with one behind a wall in a room nobody has entered would be
-  -- telling her something no player with sight can find out -- the layer is here
-  -- to make reading the game easier, not to make the game easier. What she has
-  -- once seen stays, because the game remembers it for her.
-  for _, pos in ipairs(here:points_in_radius(at, LANDMARK_RANGE)) do
-    if here:has_ter_flag_at("DOOR", pos) and perception.knows_square(pos) then
-      local dx, dy = offset(pos)
-      if not (dx == 0 and dy == 0) then
-        landmarks[#landmarks + 1] = { name = here:get_ter_at(pos):obj():name(), dx = dx, dy = dy }
-      end
-    end
-  end
-
-  -- Stairs are the other way out, and the one that leads somewhere else entirely:
-  -- a floor up or down is usually another place with another name. Looked for
-  -- further away than a door, because a staircase is worth walking to and a door
-  -- twenty squares off belongs to a room she is not in. Known ones only, for the
-  -- reason above.
-  for _, pos in ipairs(here:points_in_radius(at, STAIR_RANGE)) do
-    if perception.knows_square(pos) then
-      local dx, dy = offset(pos)
-      if here:has_ter_flag_at("GOES_UP", pos) then
-        ways_up[#ways_up + 1] = { name = here:get_ter_at(pos):obj():name(), dx = dx, dy = dy }
-      elseif here:has_ter_flag_at("GOES_DOWN", pos) then
-        ways_down[#ways_down + 1] = { name = here:get_ter_at(pos):obj():name(), dx = dx, dy = dy }
-      end
-    end
-  end
-
   return {
-    area = perception.area_name_at(at),
     -- Whether the square she stands on is unlit, which is the reason every other
     -- answer here stops where it does. A sighted player reads it off a black screen
     -- in a glance and never has to be told; without it the room measurement stops
@@ -655,11 +596,6 @@ local function collect()
       south = arm_of(at, 0, 1),
       west = arm_of(at, -1, 0),
     },
-    enemies = enemies,
-    others = others,
-    landmarks = landmarks,
-    ways_up = ways_up,
-    ways_down = ways_down,
   }
 end
 
@@ -711,35 +647,6 @@ local function browse(list, title)
   end
 end
 
--- What is near her, as rows to walk through rather than as one sentence per group.
---
--- The order is P4's and is the reason this is not sorted by distance alone: enemies
--- first because they are the only thing that can kill her this turn, then the rest
--- of what moves, then the ways out. Within each, nearest first.
-local function nearby_rows(around)
-  local rows = {}
-
-  local function add(list, kind)
-    local sorted = {}
-    for _, item in ipairs(list or {}) do
-      sorted[#sorted + 1] = item
-    end
-    table.sort(sorted, function(a, b)
-      return math.max(math.abs(a.dx), math.abs(a.dy)) < math.max(math.abs(b.dx), math.abs(b.dy))
-    end)
-    for _, item in ipairs(sorted) do
-      rows[#rows + 1] = { name = item.name, kind = kind, dx = item.dx, dy = item.dy }
-    end
-  end
-
-  add(around.enemies, "enemy")
-  add(around.others, "creature")
-  add(around.landmarks, "door")
-  add(around.ways_up, "up")
-  add(around.ways_down, "down")
-  return rows
-end
-
 -- An action in the default mode context can only arrive while no popup, no menu
 -- and no opening screen holds the keyboard, so all three are gone and are
 -- forgotten here, for the reason given where they are declared.
@@ -750,32 +657,28 @@ game.add_hook("on_action", {
     open_menu = nil
     open_screen = nil
 
-    -- What is within reach of her, asked over and over while walking. The place and
-    -- the space around her are one sentence each, because they are not a list; what
-    -- is in that space is a list, so it is walked rather than run past once.
+    -- Where she is, how much room there is, which way there is more of it, and
+    -- every way out of it -- as one list rather than as a burst of sentences with a
+    -- screen behind them. One keypress, one row, in the model every list here uses.
+    --
+    -- The frame comes first because it is what she acts on while walking, and the
+    -- ways out follow it nearest first, so the doorway she is standing in is the
+    -- first of them. Two keys answered these two halves before, and the difference
+    -- between them was a radius -- which is nothing anyone can hold in their head
+    -- while playing.
     if params.action == "bn_access_surroundings" then
-      local around = collect()
-      local area = around.area or ""
-      if area ~= "" then speech.say(area:sub(1, 1):upper() .. area:sub(2) .. ".") end
-      for _, line in ipairs(surroundings.space(around)) do
-        speech.say(line)
-      end
-      browse(nearby_rows(around), "Nearby")
-      return false
-    end
+      local report = zone.state(perception.zone_around_player())
+      local rows = {}
 
-    -- Where she has ended up, rather than what is within reach of her. Asked once
-    -- on arriving somewhere and again when deciding whether this place is done,
-    -- which is why it is not folded into the answer above: that one is pressed
-    -- every few steps and would carry the size of a station she already knows.
-    if params.action == "bn_access_zone" then
-      local report = perception.zone_around_player()
-      for _, line in ipairs(zone.utterances(zone.state(report))) do
-        speech.say(line)
+      for _, line in ipairs(surroundings.space(collect())) do
+        rows[#rows + 1] = { name = line }
+      end
+      rows[#rows + 1] = { name = zone.unexplored(report) }
+      for _, way in ipairs(perception.exits_in_zone()) do
+        rows[#rows + 1] = way
       end
 
-      local place = report.name ~= "" and report.name or "Here"
-      browse(perception.exits_in_zone(), place:sub(1, 1):upper() .. place:sub(2) .. ", ways out")
+      browse(rows, zone.title(report))
       return false
     end
 

@@ -57,6 +57,22 @@ int run_of( const tripoint_abs_omt &from, const std::string &name, const int dx,
     return found;
 }
 
+// Whether a square is a doorway, open or closed.
+//
+// The DOOR flag sits on the closed form alone, so asking for it and nothing else
+// loses the door at the moment the player opens it -- which is the moment she is
+// standing in it and asking where she is. An open door is exactly the thing whose
+// closed form is a door, and that is what this asks instead. Measured against the
+// data: it takes the 39 open doors and gates and leaves out the open windows and
+// curtains, which close into something carrying no such flag. A bar door has the
+// flag on neither form and is missed open or closed; that is upstream's data and
+// is not worked around here.
+bool is_doorway( const ter_t &what )
+{
+    return what.has_flag( "DOOR" ) ||
+           ( what.close.is_valid() && what.close.obj().has_flag( "DOOR" ) );
+}
+
 } // namespace
 
 zone_report zone_around_player()
@@ -135,7 +151,7 @@ std::vector<zone_exit> exits_in_zone()
     for( int dy = -zone.reach_north; dy <= zone.reach_south; ++dy ) {
         for( int dx = -zone.reach_west; dx <= zone.reach_east; ++dx ) {
             const tripoint_bub_ms p( at.x() + dx, at.y() + dy, at.z() );
-            if( !here.inbounds( p ) || ( dx == 0 && dy == 0 ) ) {
+            if( !here.inbounds( p ) ) {
                 continue;
             }
 
@@ -144,10 +160,7 @@ std::vector<zone_exit> exits_in_zone()
                 kind = "up";
             } else if( here.has_flag_ter( TFLAG_GOES_DOWN, p ) ) {
                 kind = "down";
-            } else if( here.has_flag_ter( "DOOR", p ) ) {
-                // By name rather than by one of the fast flags: the two staircase
-                // flags have one and a door does not, which is upstream's choice
-                // and not something to work around.
+            } else if( is_doorway( here.ter( p ).obj() ) ) {
                 kind = "door";
             } else {
                 continue;
