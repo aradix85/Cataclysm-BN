@@ -146,6 +146,35 @@ jobs:
           name: emmylua-report
           path: emmylua-raw.txt
 
+  # What the download needs in order to speak at all, read off the package.
+  #
+  # Both things this checks fail in silence. The speech library is loaded by name
+  # and a miss is treated as silence rather than as a crash; the first-run options
+  # are equally quiet when absent. A build that lost either one is green, publishes,
+  # and hands a blind player a mute game that reads as a broken layer rather than as
+  # a missing file -- and the packaging that carries them is one install line in a
+  # file upstream also edits, so losing it to a merge is a question of when.
+  #
+  # It reads the directory the Windows job already installed and uploaded, so no
+  # second build and no download of the release asset is needed. It gates: a package
+  # that cannot speak is not a package worth publishing, which is the opposite of
+  # the call made for the Lua analyser above.
+  package-speaks:
+    name: The package can speak, asserted
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch the packaged Windows build
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-tiles-x64-msvc
+          path: package
+
+      - name: Assert the speech library and the first-run settings are in it
+        run: python3 build-scripts/bn_access_package_check.py package
+
   # Upstream's packaging step always makes a second, soundless Windows zip
   # alongside the full one. Turning that off would mean editing their build
   # file, which is exactly the kind of change that conflicts at every merge, so
