@@ -1,0 +1,6 @@
+# The speech library ships with the package, so it has to be in the repository.
+# Upstream's root .gitignore excludes *.dll, which silently kept it out of every
+# commit: the local build found it on disk and the CI packaging step did not.
+# A rule in this folder wins over the one above it, and this file is ours, so
+# upstream's .gitignore stays untouched and off the conflict surface.
+!nvdaControllerClient.dll
