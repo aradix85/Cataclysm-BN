@@ -2,24 +2,29 @@
 """Judge an EmmyLua report, keeping only the accessibility layer.
 
 The analyser walks the whole clone, so most of what it prints is upstream's Lua
-and none of our business. Two families inside data/access are permanent and are
-not defects:
+and none of our business. One family inside data/access is permanent and is not
+a defect:
 
     unresolved-require
-        The analyser does not know BN's require("./lib/x") resolver, so every
-        module the layer loads looks missing.
+        Every module the layer loads looks missing to the analyser. It resolves
+        a module name the way a mod writes one -- dotted, `require("lib.x")` --
+        against the workspace roots, while the layer has to write the path form
+        `require("./lib/x")`: it is loaded by the fork rather than by the mod
+        system, so it has no mod base path for the engine to resolve a dotted
+        name against, and writing one makes the engine itself fail to load.
 
-    missing-return, missing-return-value, return-type-mismatch
-        The generated annotations declare a HookResult return while the engine
-        accepts a handler that returns nothing.
+The hook-return family used to sit here too, and it was a real mismatch rather
+than a fact of life: the generated annotation declared a HookResult return while
+the engine also accepts a boolean veto or nothing at all. Widening that alias
+removed every one of those findings, which is why the list is one family now.
 
 They are counted rather than dropped. A filter that hides a family silently
 hides the first genuine member of it too -- and a require that really is missing
 reaches the player as silence, which is the one failure this project cannot
 afford.
 
-Anything outside those families is ours and is a finding until judged
-otherwise. Exits 1 when there is one, so a caller needs no output parsing.
+Anything outside that family is ours and is a finding until judged otherwise.
+Exits 1 when there is one, so a caller needs no output parsing.
 
 Reads the report from a file given as the first argument, or from stdin.
 """
@@ -36,9 +41,6 @@ KIND = re.compile(r"\[([a-z-]+)\]\s*$")
 OURS = "data/access/"
 KNOWN = {
     "unresolved-require",
-    "missing-return",
-    "missing-return-value",
-    "return-type-mismatch",
 }
 
 
@@ -75,7 +77,7 @@ def main():
     known, found = judge(lines)
 
     print("EmmyLua, data/access only.")
-    print(f"{known} known finding(s): the require resolver and the hook return type.")
+    print(f"{known} known finding(s): the require resolver.")
 
     if not found:
         print("Nothing else. Clean.")

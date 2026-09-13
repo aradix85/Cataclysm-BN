@@ -160,10 +160,35 @@ jobs:
 
           if [ -n "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
             gh pr edit "$BRANCH" --body-file /tmp/pr.md
-          else
-            gh pr create --base main --head "$BRANCH" \
+          elif gh pr create --base main --head "$BRANCH" \
               --title "Upstream merge: ${{ steps.survey.outputs.behind }} commits" \
-              --body-file /tmp/pr.md
+              --body-file /tmp/pr.md; then
+            :
+          else
+            # A repository setting decides whether a workflow may open a pull
+            # request at all, and it is off by default. Falling back to an issue
+            # rather than failing: the branch is already pushed and the report is
+            # already written, so the only thing at stake is where it is read.
+            # Without this a flipped setting makes the whole watch worthless
+            # while looking like a broken workflow.
+            {
+              cat /tmp/pr.md
+              echo
+              echo "Opened as an issue because this repository does not let a workflow open a"
+              echo "pull request. The branch \`$BRANCH\` is pushed and holds the merge."
+              echo "Turn it on with: gh api -X PUT repos/\$REPO/actions/permissions/workflow"
+              echo "-f default_workflow_permissions=read -F can_approve_pull_request_reviews=true"
+            } > /tmp/issue.md
+            gh label create upstream-merge --color FBCA04 \
+              --description "Waiting merge from upstream" --force
+            existing="$(gh issue list --label upstream-merge --state open --json number --jq '.[0].number // empty')"
+            if [ -n "$existing" ]; then
+              gh issue edit "$existing" --body-file /tmp/issue.md
+            else
+              gh issue create --label upstream-merge \
+                --title "Upstream merge ready: ${{ steps.survey.outputs.behind }} commits" \
+                --body-file /tmp/issue.md
+            fi
           fi
 
       - name: Open an issue when it does not
