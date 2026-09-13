@@ -23,6 +23,11 @@
 # `build-scripts/bn_access_coverage.py` with its baseline beside it. That is the
 # one regression a green build cannot catch -- a firing point of ours that their
 # refactor deleted still compiles and still passes every test.
+#
+# Every gh call below names this repository. The job adds an upstream remote to
+# do its work, and a bare gh call then resolves to upstream: the first run tried
+# to open its pull request and its label in cataclysmbn's repository and was
+# refused, which reads as a permission problem and is a remote problem.
 
 name: upstream watch
 
@@ -158,9 +163,9 @@ jobs:
             echo "Check the fork's own includes still resolve if their range moved files."
           } > /tmp/pr.md
 
-          if [ -n "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
-            gh pr edit "$BRANCH" --body-file /tmp/pr.md
-          elif gh pr create --base main --head "$BRANCH" \
+          if [ -n "$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
+            gh pr edit --repo "$GITHUB_REPOSITORY" "$BRANCH" --body-file /tmp/pr.md
+          elif gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$BRANCH" \
               --title "Upstream merge: ${{ steps.survey.outputs.behind }} commits" \
               --body-file /tmp/pr.md; then
             :
@@ -179,13 +184,13 @@ jobs:
               echo "Turn it on with: gh api -X PUT repos/\$REPO/actions/permissions/workflow"
               echo "-f default_workflow_permissions=read -F can_approve_pull_request_reviews=true"
             } > /tmp/issue.md
-            gh label create upstream-merge --color FBCA04 \
+            gh label create --repo "$GITHUB_REPOSITORY" upstream-merge --color FBCA04 \
               --description "Waiting merge from upstream" --force
-            existing="$(gh issue list --label upstream-merge --state open --json number --jq '.[0].number // empty')"
+            existing="$(gh issue list --repo "$GITHUB_REPOSITORY" --label upstream-merge --state open --json number --jq '.[0].number // empty')"
             if [ -n "$existing" ]; then
-              gh issue edit "$existing" --body-file /tmp/issue.md
+              gh issue edit --repo "$GITHUB_REPOSITORY" "$existing" --body-file /tmp/issue.md
             else
-              gh issue create --label upstream-merge \
+              gh issue create --repo "$GITHUB_REPOSITORY" --label upstream-merge \
                 --title "Upstream merge ready: ${{ steps.survey.outputs.behind }} commits" \
                 --body-file /tmp/issue.md
             fi
@@ -209,12 +214,12 @@ jobs:
             echo "or moving a file, and the fix is putting our line back where it belongs."
           } > /tmp/issue.md
 
-          gh label create upstream-merge --color FBCA04 --description "Waiting merge from upstream" --force
-          existing="$(gh issue list --label upstream-merge --state open --json number --jq '.[0].number // empty')"
+          gh label create --repo "$GITHUB_REPOSITORY" upstream-merge --color FBCA04 --description "Waiting merge from upstream" --force
+          existing="$(gh issue list --repo "$GITHUB_REPOSITORY" --label upstream-merge --state open --json number --jq '.[0].number // empty')"
           if [ -n "$existing" ]; then
-            gh issue edit "$existing" --body-file /tmp/issue.md
+            gh issue edit --repo "$GITHUB_REPOSITORY" "$existing" --body-file /tmp/issue.md
           else
-            gh issue create --label upstream-merge \
+            gh issue create --repo "$GITHUB_REPOSITORY" --label upstream-merge \
               --title "Upstream merge needs hands: ${{ steps.survey.outputs.behind }} commits" \
               --body-file /tmp/issue.md
           fi
