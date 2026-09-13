@@ -1,0 +1,205 @@
+# Watching upstream, so that coming back to this project is not an investigation.
+#
+# The fork is played in stretches months apart, and upstream commits daily. The
+# expensive part of returning has never been the merge itself -- that takes
+# seconds -- but working out what is waiting: how far behind the fork is,
+# whether upstream's own main is green, which files of ours their work touched,
+# and whether any of it conflicts. This runs weekly and answers all four in one
+# place.
+#
+# What it does not do is push anything to main or claim a merge is good. When
+# the merge is clean it prepares it on a branch and opens a pull request; when
+# it conflicts it aborts and opens an issue naming the files. Either way the
+# next session starts by reading one page instead of running a dozen commands.
+#
+# The pull request carries no build, and that is a limitation of the token
+# rather than a choice: GitHub deliberately does not start workflows for pushes
+# and pull requests made with GITHUB_TOKEN, so the branch sits untested until a
+# person pushes it. Giving this workflow a personal access token as a secret
+# would let it build and test the merge on its own; until someone decides that
+# is wanted, "prepared, untested" is what it honestly says.
+#
+# The drift report is here, because the measurement lives in the clone:
+# `build-scripts/bn_access_coverage.py` with its baseline beside it. That is the
+# one regression a green build cannot catch -- a firing point of ours that their
+# refactor deleted still compiles and still passes every test.
+
+name: upstream watch
+
+on:
+  schedule:
+    # Weekly, early Monday. Nothing waits on it, so the hour is only a habit.
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: upstream-watch
+  cancel-in-progress: true
+
+jobs:
+  watch:
+    name: Look at upstream and prepare the merge
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      UPSTREAM: https://github.com/cataclysmbn/Cataclysm-BN.git
+      UPSTREAM_REPO: cataclysmbn/Cataclysm-BN
+      BRANCH: upstream-merge
+
+    steps:
+      - name: Check out the fork with its whole history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch upstream
+        run: |
+          set -euo pipefail
+          git remote add upstream "$UPSTREAM" 2>/dev/null || git remote set-url upstream "$UPSTREAM"
+          git fetch --no-tags upstream main
+          git config user.name "bn-access bot"
+          git config user.email "bn-access-bot@users.noreply.github.com"
+
+      - name: Work out what is waiting
+        id: survey
+        run: |
+          set -euo pipefail
+          base="$(git merge-base origin/main upstream/main)"
+          behind="$(git rev-list --count origin/main..upstream/main)"
+          echo "behind=$behind" >> "$GITHUB_OUTPUT"
+          echo "Upstream is $behind commits ahead."
+          if [ "$behind" -eq 0 ]; then
+            exit 0
+          fi
+
+          # Where their work and ours meet. Computed from the merge range rather
+          # than from a list someone has to keep up to date: a file both sides
+          # changed is exactly the set that can conflict.
+          git diff --name-only "$base"..upstream/main | sort > /tmp/theirs.txt
+          git diff --name-only "$base"..origin/main | sort > /tmp/ours.txt
+          comm -12 /tmp/theirs.txt /tmp/ours.txt > /tmp/shared.txt || true
+
+          {
+            echo "### Upstream is $behind commits ahead"
+            echo
+            echo "Their head: \`$(git rev-parse --short upstream/main)\`"
+            echo
+            echo "#### Files both sides changed since the last merge"
+            echo
+            if [ -s /tmp/shared.txt ]; then
+              sed 's/^/- `/; s/$/`/' /tmp/shared.txt
+            else
+              echo "None. Nothing of ours is in their way."
+            fi
+            echo
+            echo "#### Is their main green?"
+            echo
+            # Their workflow runs at that exact commit. `matrix` is the one that
+            # builds and runs the suite; their release build passes `run-tests`
+            # false and is green whatever the tests do, so read that line and
+            # not the others.
+            gh run list --repo "$UPSTREAM_REPO" --branch main --limit 30 \
+              --json name,conclusion,headSha > /tmp/runs.json || echo '[]' > /tmp/runs.json
+            jq -r --arg sha "$(git rev-parse upstream/main)" \
+              '.[] | select(.headSha==$sha) | "- \(.conclusion // "running"): \(.name)"' \
+              /tmp/runs.json | sort -u || echo "- could not be read"
+          } > /tmp/report.md
+
+      - name: Try the merge on a branch of its own
+        id: merge
+        if: steps.survey.outputs.behind != '0'
+        run: |
+          set -euo pipefail
+          git checkout -B "$BRANCH" origin/main
+          if git merge --no-edit upstream/main > /tmp/merge.log 2>&1; then
+            echo "clean=true" >> "$GITHUB_OUTPUT"
+            # The drift, measured on the merged tree, which is the whole reason
+            # this is worth reading: a screen upstream added that the layer does
+            # not speak, or a firing point of ours their refactor deleted. The
+            # second kind compiles and passes every test.
+            python3 build-scripts/bn_access_coverage.py --out /tmp/coverage.md \
+              > /tmp/coverage-run.txt 2>&1 || true
+            sed -n '/^drift against baseline:/,$p' /tmp/coverage-run.txt | tail -n +2 > /tmp/drift.txt
+          else
+            echo "clean=false" >> "$GITHUB_OUTPUT"
+            git diff --name-only --diff-filter=U > /tmp/conflicts.txt || true
+            git merge --abort || true
+          fi
+
+      - name: Open a pull request when it merged cleanly
+        if: steps.survey.outputs.behind != '0' && steps.merge.outputs.clean == 'true'
+        run: |
+          set -euo pipefail
+          git push --force-with-lease origin "$BRANCH"
+
+          {
+            cat /tmp/report.md
+            echo
+            echo "#### It merges cleanly"
+            echo
+            echo "What the layer does not speak in it, measured on the merged tree:"
+            echo
+            if [ -s /tmp/drift.txt ]; then
+              sed 's/^ */- /' /tmp/drift.txt
+            else
+              echo "- nothing; the drift is clean"
+            fi
+            echo
+            echo "Prepared here and **not built or tested** -- see the note at the top of"
+            echo "\`.github/workflows/bn-access-upstream-merge.yml\` for why a workflow-made"
+            echo "branch starts no build."
+            echo
+            echo "To take it: push this branch to \`main\` yourself, watch the build, then record"
+            echo "the drift above with \`--record\` in the merge commit once it has been read."
+            echo "Check the fork's own includes still resolve if their range moved files."
+          } > /tmp/pr.md
+
+          if [ -n "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
+            gh pr edit "$BRANCH" --body-file /tmp/pr.md
+          else
+            gh pr create --base main --head "$BRANCH" \
+              --title "Upstream merge: ${{ steps.survey.outputs.behind }} commits" \
+              --body-file /tmp/pr.md
+          fi
+
+      - name: Open an issue when it does not
+        if: steps.survey.outputs.behind != '0' && steps.merge.outputs.clean == 'false'
+        run: |
+          set -euo pipefail
+          {
+            cat /tmp/report.md
+            echo
+            echo "#### It does not merge cleanly"
+            echo
+            echo "Conflicted files:"
+            echo
+            sed 's/^/- `/; s/$/`/' /tmp/conflicts.txt
+            echo
+            echo "Nothing was pushed. Merge it by hand: the fork's edits to upstream files are"
+            echo "single call lines, so a conflict is usually their re-sorting an include block"
+            echo "or moving a file, and the fix is putting our line back where it belongs."
+          } > /tmp/issue.md
+
+          gh label create upstream-merge --color FBCA04 --description "Waiting merge from upstream" --force
+          existing="$(gh issue list --label upstream-merge --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$existing" ]; then
+            gh issue edit "$existing" --body-file /tmp/issue.md
+          else
+            gh issue create --label upstream-merge \
+              --title "Upstream merge needs hands: ${{ steps.survey.outputs.behind }} commits" \
+              --body-file /tmp/issue.md
+          fi
+
+      - name: Say it on the run summary as well
+        if: always()
+        run: |
+          set -euo pipefail
+          if [ -f /tmp/report.md ]; then
+            cat /tmp/report.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Nothing waiting: the fork is level with upstream." >> "$GITHUB_STEP_SUMMARY"
+          fi

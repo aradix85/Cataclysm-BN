@@ -1,0 +1,574 @@
+{
+  "contexts": {
+    "ADVANCED_INVENTORY": {
+      "bound": 36,
+      "registered": 40
+    },
+    "AUTO_NOTES": {
+      "bound": 3,
+      "registered": 7
+    },
+    "AUTO_PICKUP": {
+      "bound": 10,
+      "registered": 15
+    },
+    "AUTO_PICKUP_TEST": {
+      "bound": 0,
+      "registered": 2
+    },
+    "BIONICS": {
+      "bound": 8,
+      "registered": 12
+    },
+    "BLOOD_TEST_RESULTS": {
+      "bound": 0,
+      "registered": 3
+    },
+    "CANCEL_ACTIVITY_OR_IGNORE_QUERY": {
+      "bound": 4,
+      "registered": 0
+    },
+    "CARAVAN": {
+      "bound": 1,
+      "registered": 5
+    },
+    "COLORS": {
+      "bound": 2,
+      "registered": 5
+    },
+    "CONSTRUCTION": {
+      "bound": 4,
+      "registered": 15
+    },
+    "CRAFTING": {
+      "bound": 15,
+      "registered": 24
+    },
+    "DEBUG_MSG": {
+      "bound": 0,
+      "registered": 0
+    },
+    "DEFAULT": {
+      "bound": 0,
+      "registered": 3
+    },
+    "DEFAULTMODE": {
+      "bound": 130,
+      "registered": 18
+    },
+    "DEFENSE_SETUP": {
+      "bound": 2,
+      "registered": 9
+    },
+    "DIALOGUE_CHOOSE_RESPONSE": {
+      "bound": 0,
+      "registered": 0
+    },
+    "DIARY": {
+      "bound": 3,
+      "registered": 5
+    },
+    "DISP_NPCS": {
+      "bound": 0,
+      "registered": 3
+    },
+    "DISTRACTION_MANAGER": {
+      "bound": 0,
+      "registered": 3
+    },
+    "EDITMAP": {
+      "bound": 8,
+      "registered": 17
+    },
+    "EDITMAP_FEATURE": {
+      "bound": 1,
+      "registered": 0
+    },
+    "EDITMAP_RETARGET": {
+      "bound": 0,
+      "registered": 4
+    },
+    "EDITMAP_SHAPE": {
+      "bound": 3,
+      "registered": 16
+    },
+    "EDIT_FIELDS": {
+      "bound": 0,
+      "registered": 0
+    },
+    "EDIT_ITEMS": {
+      "bound": 0,
+      "registered": 0
+    },
+    "EDIT_MAPGEN": {
+      "bound": 0,
+      "registered": 0
+    },
+    "EGET_DIRECTION": {
+      "bound": 0,
+      "registered": 0
+    },
+    "EXTENDED_DESCRIPTION": {
+      "bound": 3,
+      "registered": 6
+    },
+    "HELP_KEYBINDINGS": {
+      "bound": 7,
+      "registered": 11
+    },
+    "INSERT_TABLE": {
+      "bound": 0,
+      "registered": 0
+    },
+    "INVENTORY": {
+      "bound": 7,
+      "registered": 19
+    },
+    "INVENTORY_ITEM": {
+      "bound": 23,
+      "registered": 7
+    },
+    "ITEM_ACTIONS": {
+      "bound": 10,
+      "registered": 0
+    },
+    "IUSE_SOFTWARE_KITTEN": {
+      "bound": 0,
+      "registered": 3
+    },
+    "LIGHTSON": {
+      "bound": 3,
+      "registered": 5
+    },
+    "LIST_ITEMS": {
+      "bound": 5,
+      "registered": 18
+    },
+    "LIST_MONSTERS": {
+      "bound": 4,
+      "registered": 8
+    },
+    "LIST_VEHICLES": {
+      "bound": 0,
+      "registered": 6
+    },
+    "LOAD_DELETE_CANCEL": {
+      "bound": 3,
+      "registered": 0
+    },
+    "LOOK": {
+      "bound": 2,
+      "registered": 13
+    },
+    "LUA_CONSOLE": {
+      "bound": 9,
+      "registered": 11
+    },
+    "MAIN_MENU": {
+      "bound": 1,
+      "registered": 0
+    },
+    "MAPGEN_PREVIEW": {
+      "bound": 0,
+      "registered": 0
+    },
+    "MARTIAL_ARTS": {
+      "bound": 0,
+      "registered": 6
+    },
+    "MELEE_STYLE_PICKER": {
+      "bound": 7,
+      "registered": 1
+    },
+    "MESSAGE_LOG": {
+      "bound": 4,
+      "registered": 2
+    },
+    "MINESWEEPER": {
+      "bound": 2,
+      "registered": 5
+    },
+    "MISSIONS": {
+      "bound": 0,
+      "registered": 3
+    },
+    "MODMANAGER_DIALOG": {
+      "bound": 7,
+      "registered": 15
+    },
+    "MORALE": {
+      "bound": 0,
+      "registered": 5
+    },
+    "MUTATIONS": {
+      "bound": 5,
+      "registered": 9
+    },
+    "NEW_CHAR_DESCRIPTION": {
+      "bound": 6,
+      "registered": 12
+    },
+    "NEW_CHAR_POINTS": {
+      "bound": 0,
+      "registered": 5
+    },
+    "NEW_CHAR_PROFESSIONS": {
+      "bound": 2,
+      "registered": 9
+    },
+    "NEW_CHAR_SCENARIOS": {
+      "bound": 2,
+      "registered": 8
+    },
+    "NEW_CHAR_SKILLS": {
+      "bound": 3,
+      "registered": 7
+    },
+    "NEW_CHAR_STATS": {
+      "bound": 1,
+      "registered": 5
+    },
+    "NEW_CHAR_TRAITS": {
+      "bound": 5,
+      "registered": 10
+    },
+    "NPC_TRADE": {
+      "bound": 14,
+      "registered": 13
+    },
+    "OPTIONS": {
+      "bound": 0,
+      "registered": 5
+    },
+    "OVERMAP": {
+      "bound": 21,
+      "registered": 33
+    },
+    "OVERMAP_EDITOR": {
+      "bound": 1,
+      "registered": 5
+    },
+    "OVERMAP_NOTES": {
+      "bound": 5,
+      "registered": 0
+    },
+    "OVERMAP_SEARCH": {
+      "bound": 0,
+      "registered": 6
+    },
+    "PANEL_MGMT": {
+      "bound": 2,
+      "registered": 8
+    },
+    "PICKUP": {
+      "bound": 9,
+      "registered": 16
+    },
+    "PICK_WORLD_DIALOG": {
+      "bound": 0,
+      "registered": 5
+    },
+    "PLAYER_INFO": {
+      "bound": 0,
+      "registered": 7
+    },
+    "POPUP_WAIT": {
+      "bound": 1,
+      "registered": 6
+    },
+    "SAFEMODE": {
+      "bound": 11,
+      "registered": 16
+    },
+    "SAFEMODE_TEST": {
+      "bound": 0,
+      "registered": 2
+    },
+    "SCORES": {
+      "bound": 0,
+      "registered": 6
+    },
+    "SCROLLABLE_TEXT": {
+      "bound": 0,
+      "registered": 7
+    },
+    "SNAKE": {
+      "bound": 0,
+      "registered": 3
+    },
+    "SOKOBAN": {
+      "bound": 4,
+      "registered": 6
+    },
+    "SORT_ARMOR": {
+      "bound": 9,
+      "registered": 13
+    },
+    "SPELL_SELECT": {
+      "bound": 9,
+      "registered": 14
+    },
+    "STRING_EDITOR": {
+      "bound": 2,
+      "registered": 0
+    },
+    "STRING_INPUT": {
+      "bound": 3,
+      "registered": 0
+    },
+    "TARGET": {
+      "bound": 12,
+      "registered": 17
+    },
+    "UILIST": {
+      "bound": 6,
+      "registered": 14
+    },
+    "VEHICLE": {
+      "bound": 42,
+      "registered": 0
+    },
+    "VEH_INTERACT": {
+      "bound": 24,
+      "registered": 28
+    },
+    "VENDING_MACHINE": {
+      "bound": 0,
+      "registered": 3
+    },
+    "WAIT_FOR_ANY_KEY": {
+      "bound": 0,
+      "registered": 0
+    },
+    "WORLDGEN_CONFIRM_DIALOG": {
+      "bound": 3,
+      "registered": 7
+    },
+    "YESNO": {
+      "bound": 2,
+      "registered": 0
+    },
+    "YESNOQUIT": {
+      "bound": 3,
+      "registered": 4
+    },
+    "YES_NO_ALWAYS_NEVER": {
+      "bound": 4,
+      "registered": 0
+    },
+    "YN_IGNORE_QUERY": {
+      "bound": 4,
+      "registered": 0
+    },
+    "ZONES_MANAGER": {
+      "bound": 9,
+      "registered": 12
+    }
+  },
+  "hooks": {
+    "on_action": 1,
+    "on_add_msg": 1,
+    "on_advanced_inventory": 1,
+    "on_character_death": 2,
+    "on_character_display_skill_action": 1,
+    "on_character_display_skill_info": 1,
+    "on_character_effect": 1,
+    "on_character_effect_added": 1,
+    "on_character_effect_removed": 1,
+    "on_character_item_takeoff": 1,
+    "on_character_item_wear": 1,
+    "on_character_reset_stats": 1,
+    "on_character_try_takeoff": 1,
+    "on_character_try_wear": 1,
+    "on_control_npc": 1,
+    "on_craft_result": 2,
+    "on_creature_attacked_by_character": 2,
+    "on_creature_blocked": 1,
+    "on_creature_do_turn": 2,
+    "on_creature_dodged": 2,
+    "on_creature_loaded": 2,
+    "on_creature_melee_attacked": 2,
+    "on_creature_performed_technique": 1,
+    "on_creature_spawn": 14,
+    "on_debugmsg": 1,
+    "on_description": 1,
+    "on_dialogue_end": 1,
+    "on_dialogue_option": 1,
+    "on_dialogue_start": 1,
+    "on_direction_prompt": 1,
+    "on_elevator_try_use": 1,
+    "on_explosion_start": 1,
+    "on_game_load": 1,
+    "on_game_save": 1,
+    "on_game_started": 1,
+    "on_inventory": 1,
+    "on_keybindings": 1,
+    "on_look_around": 1,
+    "on_main_menu": 1,
+    "on_make_mapgen_factory_list": 1,
+    "on_mapgen_postprocess": 1,
+    "on_mission_end": 2,
+    "on_mission_start": 1,
+    "on_mon_death": 1,
+    "on_mon_effect": 1,
+    "on_mon_effect_added": 1,
+    "on_mon_effect_removed": 1,
+    "on_monster_do_turn": 1,
+    "on_monster_examine_menu_entry": 1,
+    "on_monster_get_examine_menu_entries": 1,
+    "on_monster_loaded": 1,
+    "on_monster_spawn": 6,
+    "on_monster_tame": 1,
+    "on_morale": 1,
+    "on_nearby_items": 1,
+    "on_nearby_monsters": 1,
+    "on_npc_do_turn": 1,
+    "on_npc_interaction": 1,
+    "on_npc_loaded": 1,
+    "on_npc_spawn": 8,
+    "on_overmap": 1,
+    "on_play_input": 1,
+    "on_player_move_refused": 1,
+    "on_query_popup": 1,
+    "on_shoot": 1,
+    "on_throw": 1,
+    "on_try_monster_interaction": 1,
+    "on_try_npc_interaction": 1,
+    "on_uilist": 1,
+    "on_weather_changed": 1,
+    "on_weather_updated": 1,
+    "on_world_loading": 1
+  },
+  "verbs": {
+    "SUICIDE": "asks, opens a screen",
+    "action_menu": "",
+    "advinv": "speaks, opens a screen",
+    "apply": "opens a screen",
+    "apply_wielded": "opens a screen",
+    "auto_travel_mode": "speaks, opens a screen",
+    "autoattack": "opens a screen",
+    "autosafe": "speaks, opens a screen",
+    "bionics": "opens a screen",
+    "bn_access_places": "ours",
+    "bn_access_surroundings": "ours",
+    "butcher": "speaks, opens a screen",
+    "cast_last_spell": "opens a screen",
+    "cast_spell": "opens a screen",
+    "center": "",
+    "chat": "opens a screen",
+    "close": "speaks, opens a screen",
+    "compare": "opens a screen",
+    "construct": "speaks, opens a screen",
+    "control_vehicle": "speaks, opens a screen",
+    "craft": "speaks, opens a screen",
+    "cycle_move": "opens a screen",
+    "debug": "opens a screen",
+    "debug_lighting": "opens a screen",
+    "debug_mode": "speaks, opens a screen",
+    "debug_radiation": "opens a screen",
+    "debug_scent": "opens a screen",
+    "debug_scent_type": "opens a screen",
+    "debug_submap_grid": "",
+    "debug_temp": "opens a screen",
+    "debug_visibility": "opens a screen",
+    "diary": "opens a screen",
+    "disassemble": "speaks, opens a screen",
+    "drop": "opens a screen",
+    "drop_adj": "speaks, opens a screen",
+    "eat": "opens a screen",
+    "examine": "speaks, opens a screen",
+    "factions": "opens a screen",
+    "fire": "opens a screen",
+    "fire_burst": "opens a screen",
+    "grab": "speaks, opens a screen",
+    "haul": "speaks, opens a screen",
+    "help": "opens a screen",
+    "ignore_enemy": "speaks, opens a screen",
+    "inventory": "opens a screen",
+    "item_action_menu": "opens a screen",
+    "jump": "opens a screen",
+    "listitems": "opens a screen",
+    "long_craft": "speaks, opens a screen",
+    "look": "opens a screen",
+    "loot": "opens a screen",
+    "lua_console": "opens a screen",
+    "lua_reload": "opens a screen",
+    "main_menu": "",
+    "map": "opens a screen",
+    "messages": "opens a screen",
+    "missions": "opens a screen",
+    "morale": "opens a screen",
+    "mutations": "opens a screen",
+    "open": "speaks, opens a screen",
+    "open_autonotes": "opens a screen",
+    "open_autopickup": "opens a screen",
+    "open_color": "opens a screen",
+    "open_consume": "opens a screen",
+    "open_distraction_manager": "opens a screen",
+    "open_hhg": "speaks, opens a screen",
+    "open_movement": "opens a screen",
+    "open_options": "opens a screen",
+    "open_safemode": "opens a screen",
+    "open_wiki": "speaks, opens a screen",
+    "open_world_mods": "opens a screen",
+    "organize": "opens a screen",
+    "pause": "opens a screen",
+    "peek": "speaks, opens a screen",
+    "pick_style": "opens a screen",
+    "pickup": "speaks, opens a screen",
+    "pickup_all": "speaks, opens a screen",
+    "pickup_feet": "speaks, opens a screen",
+    "player_data": "opens a screen",
+    "quickload": "opens a screen",
+    "quicksave": "opens a screen",
+    "read": "opens a screen",
+    "recraft": "speaks, opens a screen",
+    "reload_item": "opens a screen",
+    "reload_tileset": "opens a screen",
+    "reload_weapon": "opens a screen",
+    "reload_wielded": "opens a screen",
+    "reset_move": "opens a screen",
+    "safemode": "speaks, opens a screen",
+    "salvage": "speaks, opens a screen",
+    "save": "asks, opens a screen",
+    "scores": "opens a screen",
+    "select_default_ammo": "opens a screen",
+    "select_fire_mode": "speaks, opens a screen",
+    "shift_e": "",
+    "shift_n": "",
+    "shift_ne": "",
+    "shift_nw": "",
+    "shift_s": "",
+    "shift_se": "",
+    "shift_sw": "",
+    "shift_w": "",
+    "sky": "speaks, opens a screen",
+    "sleep": "speaks, opens a screen",
+    "smash": "speaks, opens a screen",
+    "sort_armor": "opens a screen",
+    "take_off": "opens a screen",
+    "throw": "opens a screen",
+    "toggle_auto_features": "speaks, opens a screen",
+    "toggle_auto_foraging": "speaks, opens a screen",
+    "toggle_auto_mining": "speaks, opens a screen",
+    "toggle_auto_pickup": "speaks, opens a screen",
+    "toggle_auto_pulp_butcher": "speaks, opens a screen",
+    "toggle_crouch": "opens a screen",
+    "toggle_fullscreen": "opens a screen",
+    "toggle_manual_combat_mode": "opens a screen",
+    "toggle_map_memory": "opens a screen",
+    "toggle_panel_adm": "opens a screen",
+    "toggle_prone": "opens a screen",
+    "toggle_run": "opens a screen",
+    "toggle_sidebar_style": "",
+    "toggle_thief_mode": "speaks, opens a screen",
+    "toggle_zone_overlay": "",
+    "unload": "opens a screen",
+    "unload_all": "opens a screen",
+    "wait": "opens a screen",
+    "wear": "opens a screen",
+    "whitelist_enemy": "speaks, opens a screen",
+    "wield": "opens a screen",
+    "zones": "opens a screen"
+  }
+}
