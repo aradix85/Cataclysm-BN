@@ -24,6 +24,7 @@
 #include "int_id.h"
 #include "item.h"
 #include "make_static.h"
+#include "morale_hook.h"
 #include "morale_types.h"
 #include "options.h"
 #include "output.h"
@@ -832,6 +833,10 @@ void player_morale::display( int focus_eq, int pain_penalty, int fatigue_cap )
     std::string action;
     do {
         ui_manager::redraw();
+        cata::fire_on_morale( positive_morale, negative_morale, cata::morale_summary{
+            get_total_positive_value(), get_total_negative_value(), get_level(),
+            pain_penalty, fatigue_cap, focus_eq
+        }, action );
         action = ctxt.handle_input();
         if( action == "DOWN" && offset < std::max( 0, rows_total - rows_visible ) ) {
             offset++;

@@ -61,6 +61,7 @@ constexpr auto hook_names = std::array
     "on_monster_spawn",
     "on_monster_tame",
     "on_monster_try_move",
+    "on_morale",
     "on_nearby_items",
     "on_nearby_monsters",
     "on_npc_do_turn",

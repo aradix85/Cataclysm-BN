@@ -40,6 +40,7 @@ local nearby = require("./lib/nearby")
 local overmap = require("./lib/overmap")
 local play = require("./lib/play")
 local messages = require("./lib/messages")
+local morale = require("./lib/morale")
 local movement = require("./lib/movement")
 local surroundings = require("./lib/surroundings")
 local text = require("./lib/text")
@@ -418,6 +419,33 @@ game.add_hook("on_description", {
   fn = function(params)
     local state = describe.state(params)
     for _, line in ipairs(describe.utterances(state, open_menu)) do
+      speech.say(line)
+    end
+    open_menu = state
+    open_prompt = nil
+    open_screen = nil
+  end,
+})
+
+-- The game's own morale screen, which a key in ordinary play opens. Not a uilist,
+-- so it needs a firing point of its own -- see src/morale_hook.h.
+--
+-- She found it by pressing the key: the screen changed, nothing was said, and the
+-- next keypress went into a screen she did not know was there. It is also how she
+-- is doing, which is what this phase is about.
+--
+-- The reading position is ours rather than the screen's, because that screen has
+-- no selection and its arrow keys move nothing on a list that fits. So the state
+-- of the firing before this one is handed back in, and lib/morale.lua works out
+-- where the reading is now.
+--
+-- Its state goes into the same variable as the menu's, because whichever screen is
+-- on top holds the keyboard and they cannot both be open.
+game.add_hook("on_morale", {
+  priority = 100,
+  fn = function(params)
+    local state = morale.state(params, open_menu)
+    for _, line in ipairs(morale.utterances(state, open_menu)) do
       speech.say(line)
     end
     open_menu = state
