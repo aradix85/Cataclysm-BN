@@ -7,7 +7,7 @@
 #include "item.h"
 #include "item_category.h"
 #include "string_formatter.h"
-#include "vehicle.h"
+#include "vehicle/vehicle.h"
 
 namespace cata
 {

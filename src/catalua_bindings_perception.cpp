@@ -107,7 +107,11 @@ void reg_perception( sol::state &lua )
          "ground sonar, eyebot marking, antennae. Several of these reach through walls." );
     luna::set_fx( lib, "sees_with_specials",
     []( const Character & who, const Creature & critter ) -> bool {
-        return who.sees_with_specials( critter );
+        // Upstream answers with which sense reached the creature rather than
+        // whether one did; a null id is "none of them". The layer asks the
+        // yes-or-no question, since what such a creature reads like is the
+        // game's own wording through `describe_specials` either way.
+        return !who.sees_with_specials( critter ).is_null();
     } );
 
     DOC( "How a creature detected by infrared reads, as the game itself words it." );
