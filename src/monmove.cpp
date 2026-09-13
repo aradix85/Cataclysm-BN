@@ -1,27 +1,9 @@
 // Monster movement code; essentially, the AI
 
-#include "monster.h" // IWYU pragma: associated
-
-#include <algorithm>
-#include <array>
-#include <cfloat>
-#include <cmath>
-#include <cstdlib>
-#include <iterator>
-#include <list>
-#include <limits>
-#include <memory>
-#include <optional>
-#include <ostream>
-#include <ranges>
-#include <string>
-#include <unordered_map>
-#include <unordered_set>
-
 #include "avatar.h"
 #include "behavior.h"
-#include "calendar.h"
 #include "bionics.h"
+#include "calendar.h"
 #include "cata_utility.h"
 #include "catalua.h"
 #include "catalua_coord.h"
@@ -35,8 +17,9 @@
 #include "field_type.h"
 #include "game.h"
 #include "game_constants.h"
-#include "int_id.h"
 #include "init.h"
+#include "int_id.h"
+#include "legacy_pathfinding.h"
 #include "line.h"
 #include "make_static.h"
 #include "map.h"
@@ -46,16 +29,17 @@
 #include "mattack_common.h"
 #include "messages.h"
 #include "monfaction.h"
+#include "monster.h" // IWYU pragma: associated
 #include "monster_hallucination.h"
 #include "monster_oracle.h"
 #include "mtype.h"
 #include "npc.h"
 #include "options.h"
-#include "legacy_pathfinding.h"
 #include "pathfinding.h"
 #include "pimpl.h"
 #include "player.h"
 #include "point.h"
+#include "profile.h"
 #include "rng.h"
 #include "scent_map.h"
 #include "sounds.h"
@@ -65,10 +49,25 @@
 #include "translations.h"
 #include "trap.h"
 #include "type_id.h"
-#include "vehicle.h"
-#include "vehicle_part.h"
-#include "vpart_position.h"
-#include "profile.h"
+#include "vehicle/vehicle.h"
+#include "vehicle/vehicle_part.h"
+#include "vehicle/vpart_position.h"
+
+#include <algorithm>
+#include <array>
+#include <cfloat>
+#include <cmath>
+#include <cstdlib>
+#include <iterator>
+#include <limits>
+#include <list>
+#include <memory>
+#include <optional>
+#include <ostream>
+#include <ranges>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
 
 static const efftype_id effect_ai_waiting( "ai_waiting" );
 static const efftype_id effect_bouldering( "bouldering" );
@@ -128,7 +127,8 @@ auto run_lua_monster_ai( monster &mon ) -> bool
         return false;
     }
 
-    auto *lua_state = DynamicDataLoader::get_instance().lua.get();
+    std::unique_lock lock( cata::lua_lock );
+    auto *lua_state = cata::get_active_lua_state();
     if( lua_state == nullptr ) {
         return false;
     }
@@ -2405,17 +2405,20 @@ static tripoint_bub_ms find_closest_stair( const tripoint_bub_ms &near_this,
 bool monster::move_to( const tripoint_bub_ms &p, bool force, bool step_on_critter,
                        const float stagger_adjustment )
 {
-    const auto hook_results = cata::run_hooks(
-                                  "on_monster_try_move",
-    [ &, this]( sol::table & params ) {
-        params["monster"] = this;
-        params["from"] = cata::detail::lua_coords::to_lua( bub_pos() );
-        params["to"] = cata::detail::lua_coords::to_lua( p );
-        params["force"] = force;
-    } );
-    const auto can_move = hook_results.get_or( "allowed", true );
-    if( !can_move ) {
-        return false;
+    {
+        std::unique_lock lock( cata::lua_lock );
+        const auto hook_results = cata::run_hooks(
+                                      "on_monster_try_move",
+        [ &, this]( sol::table & params ) {
+            params["monster"] = this;
+            params["from"] = cata::detail::lua_coords::to_lua( bub_pos() );
+            params["to"] = cata::detail::lua_coords::to_lua( p );
+            params["force"] = force;
+        } );
+        const auto can_move = hook_results.get_or( "allowed", true );
+        if( !can_move ) {
+            return false;
+        }
     }
 
     const bool on_ground = !digging() && !flies();

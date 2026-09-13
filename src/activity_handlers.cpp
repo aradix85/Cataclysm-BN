@@ -45,8 +45,8 @@
 #include "event_bus.h"
 #include "fault.h"
 #include "field_type.h"
-#include "fstream_utils.h"
 #include "flag.h"
+#include "fstream_utils.h"
 #include "game.h"
 #include "game_constants.h"
 #include "game_inventory.h"
@@ -63,11 +63,12 @@
 #include "iuse_actor.h"
 #include "line.h"
 #include "magic/magic.h"
-#include "material.h"
+#include "magic/spell_targeting.h"
 #include "map.h"
 #include "map_iterator.h"
 #include "mapdata.h"
 #include "martialarts.h"
+#include "material.h"
 #include "messages.h"
 #include "mongroup.h"
 #include "monster.h"
@@ -87,19 +88,18 @@
 #include "rng.h"
 #include "skill.h"
 #include "sounds.h"
-#include "units.h"
-#include "magic/spell_targeting.h"
 #include "string_formatter.h"
 #include "string_id.h"
+#include "string_utils.h"
 #include "text_snippets.h"
 #include "translations.h"
 #include "type_id.h"
 #include "ui.h"
-#include "veh_interact.h"
-#include "vehicle.h"
-#include "vehicle_part.h"
-#include "vpart_position.h"
-#include "string_utils.h"
+#include "units.h"
+#include "vehicle/veh_interact.h"
+#include "vehicle/vehicle.h"
+#include "vehicle/vehicle_part.h"
+#include "vehicle/vpart_position.h"
 
 enum creature_size : int;
 
@@ -552,7 +552,10 @@ butchery_setup consider_butchery( const item &corpse_item, player &u, butcher_ty
     };
 
     const inventory &inv = u.crafting_inventory();
-    const int factor = inv.max_quality( action == DISSECT ? qual_CUT_FINE : qual_BUTCHER );
+    // Must check both u and inventory because crafting inventory lacks mutation butcher items
+    const int factor = std::max(
+                           u.max_quality( action == DISSECT ? qual_CUT_FINE : qual_BUTCHER ),
+                           inv.max_quality( action == DISSECT ? qual_CUT_FINE : qual_BUTCHER ) );
 
     const mtype &corpse = *corpse_item.get_mtype();
 

@@ -1,13 +1,5 @@
 #include "submap.h"
 
-#include <algorithm>
-#include <array>
-#include <iterator>
-#include <memory>
-#include <ranges>
-#include <span>
-#include <utility>
-
 #include "debug.h"
 #include "int_id.h"
 #include "lightmap.h"
@@ -17,9 +9,17 @@
 #include "profile.h"
 #include "tileray.h"
 #include "trap.h"
-#include "vehicle.h"
-#include "vehicle_part.h"
-#include "weather.h"
+#include "vehicle/vehicle.h"
+#include "vehicle/vehicle_part.h"
+#include "weather/weather.h"
+
+#include <algorithm>
+#include <array>
+#include <iterator>
+#include <memory>
+#include <ranges>
+#include <span>
+#include <utility>
 
 
 const data_vars::data_set submap::EMPTY_VARS{};
@@ -461,6 +461,8 @@ void submap::rotate( int turns )
         | std::views::transform( []( int i ) -> point_sm_ms { return { i % SEEX, i / SEEX }; } ),
     [this]( const point_sm_ms & p ) {
         if( trp[p.x()][p.y()] != tr_null ) {
+            trap_cache.push_back( p );
+        } else if( ter[p.x()][p.y()].obj().trap != tr_null ) {
             trap_cache.push_back( p );
         }
         if( fld[p.x()][p.y()].displayed_field_type() ) {

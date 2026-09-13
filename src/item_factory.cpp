@@ -61,9 +61,9 @@ class player;
 #include "ui.h"
 #include "units.h"
 #include "value_ptr.h"
-#include "veh_type.h"
+#include "vehicle/veh_type.h"
+#include "vehicle/wheel_dimensions.h"
 #include "vitamin.h"
-#include "wheel_dimensions.h"
 
 class player;
 struct tripoint;
@@ -3369,7 +3369,8 @@ auto load_postprocessors( std::vector<ItemFn> &xs, const JsonObject &obj ) -> bo
                     // We ignore these functions during checks
                     return std::move( it );
                 }
-                auto &state = *loader.lua.get();
+                std::unique_lock lock( cata::lua_lock );
+                auto &state = *cata::get_active_lua_state();
                 auto func = cata::get_lua_callback( state, "itemgroup_postprocessors", postprocess );
                 if( !func ) {
                     debugmsg( "Lua callback %s for `itemgroup_postprocessors does not exist.", postprocess );

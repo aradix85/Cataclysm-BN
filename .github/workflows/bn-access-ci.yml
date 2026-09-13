@@ -67,11 +67,15 @@ jobs:
   # job that ever runs Deno, and the action that sets Deno up fails in its own
   # cleanup when nothing used it, which marks an otherwise healthy build as
   # failed. What it bundles is decided by data/mods/external.json, not by this
-  # flag: the step runs the bundler either way, and running it is what keeps the
-  # cleanup quiet, so the list can be as short as the fork wants. It holds one
-  # entry, the soundpack, which is the only registry package a player without
-  # sight has any use for. The rest -- a tileset, a Korean squirrel mod,
-  # Cataclysm++ -- were dead weight in a download aimed at blind players.
+  # flag, and that list is upstream's own and stays that way. The fork trimmed
+  # it to the soundpack once, on the grounds that the rest was dead weight in a
+  # download aimed at blind players; the three mods it left out come to about
+  # five megabytes against the soundpack's five hundred, so the weight was not
+  # the reason it looked like. Bundling is not enabling -- it only puts a mod
+  # where it can be chosen, and data/mods/default.json decides what a new world
+  # starts with -- so trimming it took choices away from whoever downloads this
+  # build and gave nothing back, while costing a hand-resolved conflict every
+  # time upstream adds a mod.
   #
   # bundle-tilesets is off. It downloaded two CDDA tilesets into the package,
   # and the clone already carries eleven of its own, so the only thing turning

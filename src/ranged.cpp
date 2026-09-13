@@ -1,33 +1,19 @@
 #include "ranged.h"
 
-#include <algorithm>
-#include <numeric>
-#include <cmath>
-#include <cstdio>
-#include <cstdlib>
-#include <iterator>
-#include <map>
-#include <memory>
-#include <optional>
-#include <set>
-#include <string>
-#include <tuple>
-#include <utility>
-#include <vector>
-
 #include "activity_actor_definitions.h"
 #include "animation.h"
 #include "avatar.h"
 #include "ballistics.h"
 #include "bodypart.h"
+#include "cached_options.h"
 #include "calendar.h"
 #include "cata_utility.h"
 #include "catacharset.h"
+#include "catalua.h"
 #include "catalua_coord.h"
 #include "catalua_hooks.h"
 #include "catalua_icallback_actor.h"
 #include "catalua_sol.h"
-#include "cached_options.h"
 #include "character.h"
 #include "character_functions.h"
 #include "color.h"
@@ -38,6 +24,7 @@
 #include "debug.h"
 #include "dispersion.h"
 #include "enchantments/enchantment.h"
+#include "enchantments/enchantment_vision.h"
 #include "enums.h"
 #include "event.h"
 #include "event_bus.h"
@@ -67,9 +54,9 @@
 #include "point.h"
 #include "projectile.h"
 #include "rng.h"
+#include "shape_impl.h"
 #include "skill.h"
 #include "sounds.h"
-#include "shape_impl.h"
 #include "string_formatter.h"
 #include "string_id.h"
 #include "translations.h"
@@ -80,10 +67,25 @@
 #include "units_angle.h"
 #include "units_utility.h"
 #include "value_ptr.h"
-#include "veh_type.h"
-#include "vehicle.h"
-#include "vehicle_part.h"
-#include "vpart_position.h"
+#include "vehicle/veh_type.h"
+#include "vehicle/vehicle.h"
+#include "vehicle/vehicle_part.h"
+#include "vehicle/vpart_position.h"
+
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <iterator>
+#include <map>
+#include <memory>
+#include <numeric>
+#include <optional>
+#include <set>
+#include <string>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 struct ammo_effect;
 
@@ -1573,6 +1575,7 @@ int ranged::fire_gun( Character &who, const tripoint_bub_ms &target, int max_sho
         }
     }
 
+    std::unique_lock lock( cata::lua_lock );
     cata::run_hooks( "on_shoot", [ & ]( auto & params ) {
         params["shooter"] = &who;
         params["target_pos"] = cata::detail::lua_coords::to_lua( target );
@@ -1983,6 +1986,7 @@ dealt_projectile_attack throw_item( Character &who, const tripoint_bub_ms &targe
     who.last_target_pos = std::nullopt;
     who.recoil = MAX_RECOIL;
 
+    std::unique_lock lock( cata::lua_lock );
     cata::run_hooks( "on_throw", [ & ]( auto & params ) {
         params["thrower"] = &who;
         params["target_pos"] = cata::detail::lua_coords::to_lua( target );
@@ -2238,7 +2242,8 @@ static int print_ranged_chance( const catacurses::window &w, int line_number,
 static bool pl_sees( const Creature &cr )
 {
     Character &u = get_player_character();
-    return u.sees( cr ) || u.sees_with_infrared( cr ) || u.sees_with_specials( cr );
+    return u.sees( cr ) || u.sees_with_infrared( cr ) ||
+           u.sees_with_specials( cr ) != enchantment_vision_id::NULL_ID();
 }
 
 // Handle capping aim level when the player cannot see the target tile or there is nothing to aim at.
@@ -2902,7 +2907,8 @@ std::vector<Creature *> targetable_creatures( const Character &c, const int rang
             return false;
         }
 
-        if( !c.sees( critter ) && !c.sees_with_infrared( critter ) )
+        if( !c.sees( critter ) && !c.sees_with_infrared( critter ) &&
+            c.sees_with_specials( critter, true ).is_null() )
         {
             return false;
         }
@@ -4431,10 +4437,18 @@ void target_ui::panel_target_info( int &text_y, bool fill_with_blank_if_no_targe
             text_y += max_lines;
         } else {
             std::vector<std::string> buf;
-            if( you->sees_with_infrared( *dst_critter ) ) {
+            enchantment_vision_id special = you->sees_with_specials( *dst_critter );
+            if( special != enchantment_vision_id::NULL_ID() ) {
+                if( special->use_normal_mon_tile() ) {
+                    int fix_for_print_info = max_lines - 2;
+                    dst_critter->print_info( w_target, text_y, fix_for_print_info, 1 );
+                    text_y += max_lines;
+                } else {
+                    buf.emplace_back( special->get_mon_desc( *dst_critter ) );
+                }
+
+            } else if( you->sees_with_infrared( *dst_critter ) ) {
                 dst_critter->describe_infrared( buf );
-            } else if( you->sees_with_specials( *dst_critter ) ) {
-                dst_critter->describe_specials( buf );
             }
             for( size_t i = 0; i < static_cast<size_t>( max_lines ); i++, text_y++ ) {
                 if( i >= buf.size() ) {

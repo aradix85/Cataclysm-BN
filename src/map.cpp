@@ -1,42 +1,19 @@
 #include "map.h"
 
-#include "active_tile_data.h"
-#include "faction.h"
-#include "mapdata.h"
-#include "mapgen_async.h"
-
-#include <algorithm>
-#include <array>
-#include <cassert>
-#include <climits>
-#include <cmath>
-#include <cstdlib>
-#include <cstring>
-#include <iterator>
-#include <ranges>
-#include <limits>
-#include <mutex>
-#include <shared_mutex>
-#include <optional>
-#include <ostream>
-#include <queue>
-#include <type_traits>
-#include <unordered_map>
-#include <variant>
-#include <vector>
-
 #include "active_item_cache.h"
+#include "active_tile_data.h"
 #include "ammo.h"
 #include "ammo_effect.h"
 #include "artifact.h"
 #include "avatar.h"
 #include "bodypart.h"
+#include "cached_options.h"
 #include "calendar.h"
-#include "catalua_hooks.h"
-#include "catalua_sol.h"
 #include "cata_cartesian_product.h"
 #include "cata_utility.h"
-#include "cached_options.h"
+#include "catalua.h"
+#include "catalua_hooks.h"
+#include "catalua_sol.h"
 #include "character.h"
 #include "character_id.h"
 #include "clzones.h"
@@ -55,12 +32,13 @@
 #include "event_bus.h"
 #include "explosion.h"
 #include "explosion_queue.h"
+#include "faction.h"
 #include "field.h"
 #include "field_type.h"
 #include "flag.h"
 #include "flat_set.h"
-#include "fragment_cloud.h"
 #include "fluid_grid.h"
+#include "fragment_cloud.h"
 #include "fungal_effects.h"
 #include "game.h"
 #include "game_constants.h"
@@ -76,14 +54,17 @@
 #include "itype.h"
 #include "iuse.h"
 #include "iuse_actor.h"
+#include "legacy_pathfinding.h"
 #include "lightmap.h"
 #include "line.h"
 #include "map/utils/map_functions.h"
+#include "map_feature_descriptions.h"
 #include "map_iterator.h"
 #include "map_memory.h"
 #include "map_selector.h"
 #include "mapbuffer.h"
-#include "map_feature_descriptions.h"
+#include "mapdata.h"
+#include "mapgen_async.h"
 #include "math_defines.h"
 #include "memory_fast.h"
 #include "messages.h"
@@ -96,12 +77,11 @@
 #include "options.h"
 #include "output.h"
 #include "overmapbuffer.h"
-#include "legacy_pathfinding.h"
 #include "player.h"
 #include "point.h"
 #include "point_float.h"
-#include "projectile.h"
 #include "profile.h"
+#include "projectile.h"
 #include "rng.h"
 #include "rot.h"
 #include "safe_reference.h"
@@ -118,14 +98,34 @@
 #include "trap.h"
 #include "ui_manager.h"
 #include "value_ptr.h"
-#include "veh_type.h"
-#include "vehicle.h"
-#include "vehicle_part.h"
+#include "vehicle/veh_type.h"
+#include "vehicle/vehicle.h"
+#include "vehicle/vehicle_part.h"
+#include "vehicle/vpart_position.h"
+#include "vehicle/vpart_range.h"
 #include "visitable.h"
-#include "vpart_position.h"
-#include "vpart_range.h"
-#include "weather.h"
+#include "weather/weather.h"
 #include "weighted_list.h"
+
+#include <algorithm>
+#include <array>
+#include <cassert>
+#include <climits>
+#include <cmath>
+#include <cstdlib>
+#include <cstring>
+#include <iterator>
+#include <limits>
+#include <mutex>
+#include <optional>
+#include <ostream>
+#include <queue>
+#include <ranges>
+#include <shared_mutex>
+#include <type_traits>
+#include <unordered_map>
+#include <variant>
+#include <vector>
 
 #if defined( CATA_SDL )
 #include "compute/compute_backend.h"
@@ -608,12 +608,18 @@ void map::on_submap_loaded( const tripoint_abs_sm &p, const dimension_id &dim_id
     get_mapbuffer().refresh_active_item_submap_index( p, resident_item_lookup() );
 
     // Register any funnel traps so fill_water_collectors can skip the mapbuffer scan.
+    // Guard against duplicate registration: on_submap_loaded() may be replayed for
+    // already-resident submaps (e.g. game::load_map() after m.load() cleared the
+    // list, or submap_loader.update() firing for the bubble), and funnel_locations_
+    // is a vector with no natural dedup — a double entry would fill at 2x rate (#10171).
     if( sm != nullptr && !sm->trap_cache.empty() ) {
-        std::ranges::for_each( sm->trap_cache, [&]( const point_sm_ms & lp ) {
-            if( sm->get_trap( lp ).obj().is_funnel() ) {
-                funnel_locations_.emplace_back( p, lp );
+        for( const point_sm_ms &lp : sm->trap_cache ) {
+            if( sm->get_effective_trap( lp ).obj().is_funnel() ) {
+                if( !std::ranges::contains( funnel_locations_, std::pair( p, lp ) ) ) {
+                    funnel_locations_.emplace_back( p, lp );
+                }
             }
-        } );
+        }
     }
 
 }
@@ -9060,6 +9066,7 @@ void map::spawn_monsters_submap( const tripoint_bub_sm &gp, bool ignore_sight )
                 monster *const placed = g->place_critter_at( make_shared_fast<monster>( tmp ), p );
                 if( placed ) {
                     placed->on_load();
+                    std::unique_lock lock( cata::lua_lock );
                     cata::run_hooks( "on_creature_spawn", [&]( sol::table & params ) {
                         params["creature"] = placed;
                     } );

@@ -1,36 +1,37 @@
+#include "avatar.h"
 #include "cached_options.h"
 #include "catalua_bindings.h"
-#include "catalua_coord.h"
-#include "catalua_bindings_utils.h"
 #include "catalua_bindings_game_internal.h"
+#include "catalua_bindings_utils.h"
+#include "catalua_coord.h"
 #include "catalua_impl.h"
+#include "catalua_log.h"
 #include "catalua_luna.h"
 #include "catalua_luna_doc.h"
+#include "creature_tracker.h"
+#include "distribution_grid.h"
+#include "game.h"
+#include "iexamine.h"
+#include "init.h"
+#include "lightmap.h"
+#include "line.h"
+#include "lua_action_menu.h"
+#include "lua_actions.h"
+#include "map.h"
+#include "messages.h"
+#include "monster.h"
+#include "npc.h"
+#include "overmapbuffer.h"
+#include "sol/forward.hpp"
+#include "sol/sol.hpp"
+#include "tts.h"
+#include "units_temperature.h"
+#include "weather/weather.h"
 
 #include <algorithm>
 #include <ranges>
 #include <stdexcept>
 #include <vector>
-
-#include "avatar.h"
-#include "creature_tracker.h"
-#include "distribution_grid.h"
-#include "init.h"
-#include "game.h"
-#include "iexamine.h"
-#include "lightmap.h"
-#include "map.h"
-#include "catalua_log.h"
-#include "messages.h"
-#include "npc.h"
-#include "monster.h"
-#include "overmapbuffer.h"
-#include "tts.h"
-#include "sol/forward.hpp"
-#include "weather.h"
-#include "line.h"
-#include "lua_action_menu.h"
-#include "lua_actions.h"
 
 namespace
 {
@@ -90,9 +91,12 @@ void cata::detail::reg_game_api( sol::state &lua )
     luna::set_fx( lib, "current_turn", []() -> time_point { return calendar::turn; } );
     luna::set_fx( lib, "turn_zero", []() -> time_point { return calendar::turn_zero; } );
     luna::set_fx( lib, "before_time_starts", []() -> time_point { return calendar::before_time_starts; } );
-    luna::set_fx( lib, "bodytemp_cold", []() -> int { return BODYTEMP_COLD; } );
-    luna::set_fx( lib, "bodytemp_norm", []() -> int { return BODYTEMP_NORM; } );
-    luna::set_fx( lib, "bodytemp_hot", []() -> int { return BODYTEMP_HOT; } );
+    luna::set_fx( lib, "bodytemp_cold",
+                  []() -> int { return units::to_legacy_bodypart_temp( BODYTEMP_COLD ); } );
+    luna::set_fx( lib, "bodytemp_norm",
+                  []() -> int { return units::to_legacy_bodypart_temp( BODYTEMP_NORM ); } );
+    luna::set_fx( lib, "bodytemp_hot",
+                  []() -> int { return units::to_legacy_bodypart_temp( BODYTEMP_HOT ); } );
     luna::set_fx( lib, "rng", sol::resolve<int( int, int )>( &rng ) );
 
     // Speech and braille, for the bn_access accessibility layer. The plain name
@@ -332,15 +336,15 @@ void cata::detail::reg_game_api( sol::state &lua )
     luna::set_fx( lib, "remove_npc_follower", []( npc & p ) { g->remove_npc_follower( p.getID() ); } );
 
     DOC( "Register a Lua-defined action menu entry in the in-game action menu." );
-    luna::set_fx( lib, "inv_map_splice", []( sol::table opts ) -> item* {
+    luna::set_fx( lib, "inv_map_splice", []( sol::this_state lua_this, sol::table opts ) -> item* {
+        sol::state_view lua( lua_this );
         auto title = opts.get<std::string>( "title" );
         auto failure = opts.get<std::string>( "failure" );
         auto radius = opts.get_or<int>( "radius", PICKUP_RANGE );
         auto fn = opts.get<sol::protected_function>( "check" );
-        auto &state = *DynamicDataLoader::get_instance().lua.get();
         return g->inv_map_splice( [&]( const item & e )
         {
-            auto params = state.lua.create_table();
+            auto params = lua.create_table();
             params["item"] = &e;
             sol::protected_function_result res = fn( params );
 

@@ -1,36 +1,19 @@
 #include "mapgen.h"
 
-#include <algorithm>
-#include <array>
-#include <cassert>
-#include <cmath>
-#include <cstdlib>
-#include <functional>
-#include <list>
-#include <map>
-#include <memory>
-#include <optional>
-#include <ranges>
-#include <set>
-#include <stdexcept>
-#include <unordered_map>
-
 #include "advanced_inv_listitem.h"
-#include "artifact_enum_traits.h"
 #include "all_enum_values.h"
+#include "artifact_enum_traits.h"
 #include "assign.h"
 #include "avatar.h"
 #include "calendar.h"
 #include "catacharset.h"
 #include "catalua.h"
-#include "catalua_mapgen.h"
 #include "catalua_hooks.h"
+#include "catalua_mapgen.h"
 #include "catalua_sol.h"
 #include "character_id.h"
 #include "clzones.h"
 #include "color.h"
-#include "hsv_color.h"
-#include "numeric_interval.h"
 #include "computer.h"
 #include "coordinates.h"
 #include "debug.h"
@@ -41,6 +24,7 @@
 #include "game.h"
 #include "game_constants.h"
 #include "generic_factory.h"
+#include "hsv_color.h"
 #include "input.h"
 #include "int_id.h"
 #include "item.h"
@@ -62,29 +46,30 @@
 #include "mapgen_functions.h"
 #include "mapgendata.h"
 #include "mapgenformat.h"
-#include "thread_pool.h"
 #include "memory_fast.h"
 #include "mission.h"
 #include "mod_manager.h"
 #include "mongroup.h"
 #include "npc.h"
+#include "numeric_interval.h"
 #include "omdata.h"
 #include "options.h"
 #include "overmap.h"
+#include "overmap_connection.h"
 #include "overmapbuffer.h"
 #include "overmapbuffer_registry.h"
-#include "regional_settings.h"
-#include "overmap_connection.h"
 #include "player.h"
 #include "point.h"
 #include "point_float.h"
 #include "profile.h"
+#include "regional_settings.h"
 #include "rng.h"
 #include "string_formatter.h"
 #include "string_id.h"
 #include "string_utils.h"
 #include "submap.h"
 #include "text_snippets.h"
+#include "thread_pool.h"
 #include "tileray.h"
 #include "to_string_id.h"
 #include "translations.h"
@@ -92,12 +77,27 @@
 #include "type_id.h"
 #include "units_utility.h"
 #include "value_ptr.h"
-#include "vehicle.h"
-#include "vehicle_part.h"
-#include "vehicle_group.h"
-#include "vpart_position.h"
-#include "vpart_range.h"
+#include "vehicle/vehicle.h"
+#include "vehicle/vehicle_group.h"
+#include "vehicle/vehicle_part.h"
+#include "vehicle/vpart_position.h"
+#include "vehicle/vpart_range.h"
 #include "weighted_list.h"
+
+#include <algorithm>
+#include <array>
+#include <cassert>
+#include <cmath>
+#include <cstdlib>
+#include <functional>
+#include <list>
+#include <map>
+#include <memory>
+#include <optional>
+#include <ranges>
+#include <set>
+#include <stdexcept>
+#include <unordered_map>
 
 static const itype_id itype_avgas( "avgas" );
 static const itype_id itype_diesel( "diesel" );
@@ -256,7 +256,6 @@ auto mapgen_constructor::generate( const tripoint_abs_omt &omt_pos, const time_p
             push_deferred_mapgen_hook( { get_bound_dimension(), omt_pos, when } );
         } else {
             cata::run_on_mapgen_postprocess_hooks(
-                *DynamicDataLoader::get_instance().lua,
                 *this,
                 omt_pos,
                 when
@@ -398,6 +397,7 @@ class mapgen_factory
             // Stuff used in lua code only
             // Yes a mod could blow something up...
             // But it makes itself widely known
+            std::unique_lock lock( cata::lua_lock );
             result = cata::run_hooks( "on_make_mapgen_factory_list", [&]( auto & params ) { params["results"] = &result; } ).get_or( "results",
                     result );
             return result;
@@ -5961,6 +5961,7 @@ character_id map::place_npc( const tripoint_bub_ms &p, const string_id<npc_templ
     // The NPC is already registered in the overmapbuffer (thread-safe via npc_mutex_);
     // mods that need on_npc_spawn will see it when the main thread next loads the submap.
     if( !is_pool_worker_thread() ) {
+        std::unique_lock lock( cata::lua_lock );
         cata::run_hooks( "on_creature_spawn", [&]( sol::table & params ) {
             params["creature"] = temp.get();
         } );

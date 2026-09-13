@@ -1,15 +1,5 @@
 #include "action.h"
 
-#include <algorithm>
-#include <climits>
-#include <istream>
-#include <iterator>
-#include <memory>
-#include <optional>
-#include <ranges>
-#include <set>
-#include <utility>
-
 #include "avatar.h"
 #include "cata_utility.h"
 #include "catacharset.h"
@@ -42,10 +32,20 @@
 #include "type_id.h"
 #include "ui.h"
 #include "ui_manager.h"
-#include "veh_type.h"
-#include "vehicle.h"
-#include "vehicle_part.h"
-#include "vpart_position.h"
+#include "vehicle/veh_type.h"
+#include "vehicle/vehicle.h"
+#include "vehicle/vehicle_part.h"
+#include "vehicle/vpart_position.h"
+
+#include <algorithm>
+#include <climits>
+#include <istream>
+#include <iterator>
+#include <memory>
+#include <optional>
+#include <ranges>
+#include <set>
+#include <utility>
 
 static const quality_id qual_BUTCHER( "BUTCHER" );
 static const quality_id qual_CUT_FINE( "CUT_FINE" );
@@ -832,7 +832,7 @@ bool can_examine_at( const tripoint_bub_ms &p )
     }
 
     Creature *c = g->critter_at( p );
-    if( c != nullptr && p != u.bub_pos() ) {
+    if( c != nullptr && ( p != u.bub_pos() || u.is_mounted() ) ) {
         return true;
     }
 
