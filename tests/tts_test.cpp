@@ -32,33 +32,6 @@ private:
 
 } // namespace
 
-TEST_CASE("tts_escape_ssml", "[tts]") {
-    // Plain text must survive untouched, or every ordinary utterance would be
-    // mangled on its way to NVDA.
-    CHECK(tts::escape_ssml("three zombies, four northeast") == "three zombies, four northeast");
-
-    CHECK(tts::escape_ssml("").empty());
-
-    // The five XML metacharacters.
-    CHECK(tts::escape_ssml("<") == "&lt;");
-    CHECK(tts::escape_ssml(">") == "&gt;");
-    CHECK(tts::escape_ssml("\"") == "&quot;");
-    CHECK(tts::escape_ssml("'") == "&apos;");
-    CHECK(tts::escape_ssml("&") == "&amp;");
-
-    // The ampersand has to be escaped in the same pass as the rest, not before
-    // or after it: escaping in two passes turns "<" into "&amp;lt;" and the
-    // player hears the entity read out.
-    CHECK(tts::escape_ssml("a<b") == "a&lt;b");
-    CHECK(tts::escape_ssml("&lt;") == "&amp;lt;");
-    CHECK(tts::escape_ssml("&&") == "&amp;&amp;");
-
-    // Non-ASCII is not an XML metacharacter and must pass through as bytes;
-    // the conversion to UTF-16 happens later, in the sink.
-    CHECK(tts::escape_ssml("vier noordoost \xE2\x80\x94 zombie")
-          == "vier noordoost \xE2\x80\x94 zombie");
-}
-
 TEST_CASE("tts_recording_sink_captures_what_was_said", "[tts]") {
     scoped_recorder r;
 
@@ -96,16 +69,21 @@ TEST_CASE("tts_output_reaches_both_channels", "[tts]") {
 TEST_CASE("tts_output_keeps_the_two_forms_apart", "[tts]") {
     scoped_recorder r;
 
-    // Whether any utterance should read differently in braille than in speech
-    // is an open question the owner settles by reading. This asserts only that
-    // the layer can carry two forms without one leaking into the other.
-    tts::output("four northeast", "4 NE", tts::priority::next);
+    // Speech and braille carry the same text; the two-string form is the
+    // exception, for a written form that is a different thing rather than a
+    // shorter wording of the same one. A map reference is such a case: it is
+    // read, not heard, and spelling it out loud would be unbearable.
+    //
+    // This asserts only that the layer can carry two forms without one leaking
+    // into the other. It deliberately does not use a shortened spoken sentence
+    // as its example: that is the case the rule rules out.
+    tts::output("the pharmacy on Bell Street", "Bell St pharmacy, C4", tts::priority::normal);
 
     REQUIRE(r.rec->spoken().size() == 1);
     REQUIRE(r.rec->brailled().size() == 1);
-    CHECK(r.rec->spoken()[0].text == "four northeast");
-    CHECK(r.rec->brailled()[0] == "4 NE");
-    CHECK(r.rec->spoken()[0].prio == tts::priority::next);
+    CHECK(r.rec->spoken()[0].text == "the pharmacy on Bell Street");
+    CHECK(r.rec->brailled()[0] == "Bell St pharmacy, C4");
+    CHECK(r.rec->spoken()[0].prio == tts::priority::normal);
 }
 
 TEST_CASE("tts_sink_swap_restores_the_previous_sink", "[tts]") {
@@ -153,8 +131,8 @@ TEST_CASE("tts_lua_speech_reaches_the_sink", "[lua][tts]") {
     CHECK(r.rec->spoken()[0].text == "three zombies");
     CHECK(r.rec->spoken()[0].prio == tts::priority::normal);
     CHECK(r.rec->spoken()[1].text == "spoken only");
-    CHECK(r.rec->spoken()[2].text == "four northeast");
-    CHECK(r.rec->spoken()[2].prio == tts::priority::next);
+    CHECK(r.rec->spoken()[2].text == "the pharmacy on Bell Street");
+    CHECK(r.rec->spoken()[2].prio == tts::priority::now);
 
     // Braille channel: say() reaches it with the same text, braille-only with
     // its own, and the split call with the braille form. Speech-only must not
@@ -162,15 +140,22 @@ TEST_CASE("tts_lua_speech_reaches_the_sink", "[lua][tts]") {
     REQUIRE(r.rec->brailled().size() == 3);
     CHECK(r.rec->brailled()[0] == "three zombies");
     CHECK(r.rec->brailled()[1] == "brailled only");
-    CHECK(r.rec->brailled()[2] == "4 NE");
+    CHECK(r.rec->brailled()[2] == "Bell St pharmacy, C4");
 
+    // One cancel: the explicit gapi.cancel_speech() at the end of the script.
+    // `now` does not add one here - cancelling before speaking lives in the
+    // NVDA sink, while the recorder only notes which priority it was handed.
     CHECK(r.rec->cancels() == 1);
 }
 
 TEST_CASE("tts_priority_from_int_rejects_nonsense", "[tts]") {
     CHECK(tts::priority_from_int(0) == tts::priority::normal);
-    CHECK(tts::priority_from_int(1) == tts::priority::next);
     CHECK(tts::priority_from_int(2) == tts::priority::now);
+
+    // 1 was NVDA's `next` until 16 September 2026 and is now nonsense like any
+    // other unknown value. A script written against the old binding keeps
+    // speaking rather than falling silent, which is the point of the fallback.
+    CHECK(tts::priority_from_int(1) == tts::priority::normal);
 
     // A script can pass anything. Falling back to normal keeps the utterance
     // audible; silently dropping it would leave the player with no way to tell

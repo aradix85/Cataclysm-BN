@@ -26,14 +26,18 @@ namespace tts
 /**
  * Where an utterance goes relative to speech already queued inside NVDA.
  *
- * Values match SPEECH_PRIORITY in nvdaController.h. They are restated here so
+ * Two values, and that is on purpose. NVDA's own `next` priority is not
+ * offered: it can discard speech that is already waiting rather than
+ * overtaking it, which is what P8 rules out. It was the only reason this bridge
+ * ever built SSML, so `now` is a cancel followed by a speak and `normal` is a
+ * plain speak.
+ *
+ * The values match SPEECH_PRIORITY in nvdaController.h, restated here so
  * that nothing outside the Windows sink has to include that header.
  */
 enum class priority : int {
     /** Queue behind everything already queued. */
     normal = 0,
-    /** Speak after the current utterance, ahead of the rest of the queue. */
-    next = 1,
     /** Interrupt the current utterance and speak at once. */
     now = 2,
 };
@@ -110,12 +114,14 @@ priority priority_from_int( int value );
  * Braille is a first-class channel here, not an afterthought, so the ordinary
  * call reaches both and neither can be forgotten by omission.
  *
- * The one-string form sends the same text to speech and braille, which is how
- * a screen reader normally behaves. **Whether any utterance should differ
- * between the two is an open question** — the owner will settle it by reading,
- * and until then nothing in this layer may assume it either way. The two-string
- * overload exists so that answer can be acted on without reshaping call sites,
- * not because a difference is expected.
+ * **Speech and braille carry the same text.** The owner reads braille and
+ * listens at once, so two forms that can drift apart are two forms that can no
+ * longer be checked against each other.
+ *
+ * The two-string overload is the exception and **needs a reason at the call
+ * site**. It is for a written form that is a different thing, not a shorter
+ * wording of the same thing: "4 NE" beside "four northeast" is not an exception,
+ * it quietly demotes braille to a summary of what the ears already had.
  */
 void output( const std::string &text, priority prio = priority::normal );
 void output( const std::string &spoken, const std::string &brailled, priority prio );
@@ -125,14 +131,5 @@ std::unique_ptr<sink> set( std::unique_ptr<sink> s );
 
 /** Restore the platform default sink. */
 void reset();
-
-/**
- * Escape text for inclusion in an SSML document.
- *
- * The only string transformation the bridge performs itself, and the reason
- * priority works at all: nvdaController_speakText takes no priority, so anything
- * other than normal priority has to go out as SSML. Pure, and unit tested.
- */
-std::string escape_ssml( const std::string &text );
 
 } // namespace tts

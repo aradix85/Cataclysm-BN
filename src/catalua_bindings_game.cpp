@@ -105,9 +105,6 @@ void cata::detail::reg_game_api( sol::state &lua )
     DOC( "Speech priority: queue behind everything already queued." );
     luna::set_fx( lib, "speech_priority_normal",
     []() -> int { return static_cast<int>( tts::priority::normal ); } );
-    DOC( "Speech priority: speak after the current utterance, ahead of the queue." );
-    luna::set_fx( lib, "speech_priority_next",
-    []() -> int { return static_cast<int>( tts::priority::next ); } );
     DOC( "Speech priority: interrupt whatever is speaking and say this at once." );
     luna::set_fx( lib, "speech_priority_now",
     []() -> int { return static_cast<int>( tts::priority::now ); } );
