@@ -12,7 +12,6 @@
 #include "calendar.h"
 #include "cata_utility.h"
 #include "catacharset.h"
-#include "catalua.h"
 #include "catalua_hooks.h"
 #include "catalua_icallback_actor.h"
 #include "catalua_sol.h"
@@ -35,8 +34,6 @@
 #include "enchantments/enchantment.h"
 #include "event.h"
 #include "event_bus.h"
-#include "field.h"
-#include "field_type.h"
 #include "fire.h"
 #include "flag.h"
 #include "fungal_effects.h"
@@ -48,14 +45,17 @@
 #include "itype.h"
 #include "iuse.h"
 #include "iuse_actor.h"
-#include "legacy_pathfinding.h"
-#include "lightmap.h"
 #include "line.h"
 #include "make_static.h"
-#include "map.h"
+#include "map/field.h"
+#include "map/field_type.h"
+#include "map/legacy_pathfinding.h"
+#include "map/lightmap.h"
+#include "map/map.h"
+#include "map/map_selector.h"
+#include "map/mapdata.h"
+#include "map/submap.h"
 #include "map_iterator.h"
-#include "map_selector.h"
-#include "mapdata.h"
 #include "martialarts.h"
 #include "material.h"
 #include "math_defines.h"
@@ -89,7 +89,6 @@
 #include "string_formatter.h"
 #include "string_id.h"
 #include "string_utils.h"
-#include "submap.h"
 #include "text_snippets.h"
 #include "thread_pool.h"
 #include "translations.h"
@@ -3315,8 +3314,9 @@ ret_val<bool> Character::can_wear( const item &it, bool with_equip_change ) cons
         return ret_val<bool>::make_failure( _( "Putting on a %s would be tricky." ), it.tname() );
     }
 
-    {
-        std::unique_lock lock( cata::lua_lock );
+    // During multithreaded mapgen this can be called on NPC gen
+    // If so it will cause random segfaults on NPC generation
+    if( !is_pool_worker_thread() ) {
         const auto &hook_results = cata::run_hooks( "on_character_try_wear",
         [&]( sol::table & params ) {
             params["who"] = this;
@@ -3602,8 +3602,9 @@ ret_val<bool> Character::can_takeoff( const item &it, bool dropping ) const
                                             _( "<npcname> is not wearing that item." ) );
     }
 
-    {
-        std::unique_lock lock( cata::lua_lock );
+    // During multithreaded mapgen this can be called on NPC gen
+    // If so it will cause random segfaults on NPC generation
+    if( !is_pool_worker_thread() ) {
         const auto &hook_results = cata::run_hooks( "on_character_try_takeoff",
         [&]( sol::table & params ) {
             params["who"] = this;
@@ -3740,10 +3741,14 @@ bool Character::unwield()
         return false;
     }
 
-    // Lua iwieldable can_unwield callback
-    if( const auto *iwield_cb = primary_weapon().type->iwieldable_callbacks ) {
-        if( !iwield_cb->call_can_unwield( *this, primary_weapon() ) ) {
-            return false;
+    // During multithreaded mapgen this can be called on NPC gen
+    // If so it will cause random segfaults on NPC generation
+    if( !is_pool_worker_thread() ) {
+        // Lua iwieldable can_unwield callback
+        if( const auto *iwield_cb = primary_weapon().type->iwieldable_callbacks ) {
+            if( !iwield_cb->call_can_unwield( *this, primary_weapon() ) ) {
+                return false;
+            }
         }
     }
 
@@ -4381,7 +4386,6 @@ void Character::die( Creature *nkiller )
     }
     mission::on_creature_death( *this );
 
-    std::unique_lock lock( cata::lua_lock );
     cata::run_hooks( "on_character_death", [ &, this]( auto & params ) {
         params["char"] = this;
         params["killer"] = get_killer();
@@ -7577,17 +7581,41 @@ float Character::mutation_armor( bodypart_id bp, const damage_unit &du ) const
 
 float Character::rest_quality() const
 {
-    // TODO: Make comfort (bed, sofa, blankets, etc) contribute to rest, both while asleep and awake
     float rest_rate = 0.0f;
     const float activity_rest = activity->get_rest_amount();
 
-    if( activity_rest > 0.0f ) {
-        rest_rate += activity_rest;
-    }
+    if( activity_rest > 0.0f ) { rest_rate += activity_rest; }
 
     if( has_effect( effect_sleep ) ) {
-        // Can be reduced below 1 once comfort is involved
-        rest_rate += 1.0f;
+        rest_rate += 0.85f;
+    }
+
+    // Only add rest quality from and give feedback for comfort if the player is actually resting
+    if( rest_rate > 0.0f ) {
+
+        const character_funcs::comfort_level comfort =
+            character_funcs::base_comfort_value( *this, bub_pos() ).level;
+
+        if( comfort >= character_funcs::comfort_level::very_comfortable ) {
+            rest_rate += 0.15f;
+        } else if( comfort >= character_funcs::comfort_level::comfortable ) {
+            rest_rate += 0.1f;
+        } else if( comfort >= character_funcs::comfort_level::slightly_comfortable ) {
+            rest_rate += 0.05f;
+        }
+
+        // rest_quality() theoretically gets called every 5 minutes, so these messages should display once every 90 minutes on average
+        if( one_in( 18 ) ) {
+            if( comfort >= character_funcs::comfort_level::very_comfortable ) {
+                add_msg_if_player( "You feel very comfortable." );
+            } else if( comfort >= character_funcs::comfort_level::comfortable ) {
+                add_msg_if_player( "You feel comfortable." );
+            } else if( comfort >= character_funcs::comfort_level::slightly_comfortable ) {
+                add_msg_if_player( "You feel slightly comfortable." );
+            } else {
+                add_msg_if_player( "You don't feel especially comfortable." );
+            }
+        }
     }
 
     return clamp( rest_rate, 0.0f, 1.0f );
@@ -9592,7 +9620,6 @@ void Character::on_dodge( Creature *source, int difficulty )
             }
         }
     }
-    std::unique_lock lock( cata::lua_lock );
     cata::run_hooks( "on_creature_dodged", [ &, this]( auto & params ) {
         params["char"] = this;
         params["source"] = source;
@@ -11369,14 +11396,15 @@ void Character::on_item_wear( item &it )
         }
     }
     morale->on_item_wear( it );
-    if( it.type->iwearable_callbacks ) {
-        it.type->iwearable_callbacks->call_on_wear( *this, it );
+    if( !is_pool_worker_thread() ) {
+        if( it.type->iwearable_callbacks ) {
+            it.type->iwearable_callbacks->call_on_wear( *this, it );
+        }
+        cata::run_hooks( "on_character_item_wear", [&]( auto & params ) {
+            params["who"] = this;
+            params["item"] = &it;
+        } );
     }
-    std::unique_lock lock( cata::lua_lock );
-    cata::run_hooks( "on_character_item_wear", [&]( auto & params ) {
-        params["who"] = this;
-        params["item"] = &it;
-    } );
 }
 
 void Character::on_item_takeoff( item &it )
@@ -11391,14 +11419,15 @@ void Character::on_item_takeoff( item &it )
         }
     }
     morale->on_item_takeoff( it );
-    if( it.type->iwearable_callbacks ) {
-        it.type->iwearable_callbacks->call_on_takeoff( *this, it );
+    if( !is_pool_worker_thread() ) {
+        if( it.type->iwearable_callbacks ) {
+            it.type->iwearable_callbacks->call_on_takeoff( *this, it );
+        }
+        cata::run_hooks( "on_character_item_takeoff", [&]( auto & params ) {
+            params["who"] = this;
+            params["item"] = &it;
+        } );
     }
-    std::unique_lock lock( cata::lua_lock );
-    cata::run_hooks( "on_character_item_takeoff", [&]( auto & params ) {
-        params["who"] = this;
-        params["item"] = &it;
-    } );
 }
 
 void Character::on_effect_int_change( const efftype_id &effect_type, int intensity,
@@ -11612,7 +11641,7 @@ int Character::run_cost( int base_cost, bool diag ) const
             movecost *= mutation_value( "movecost_flatground_modifier" );
             movecost += bonus_from_enchantments( movecost, enchantment_value_id( "FLAT_MOVE_COST" ) );
         }
-        if( has_trait( trait_PADDED_FEET ) && !footwear_factor() ) {
+        if( has_trait( trait_PADDED_FEET ) && !is_wearing_shoes() ) {
             movecost *= .9f;
         }
         if( has_active_bionic( bio_jointservo ) ) {
@@ -12030,7 +12059,7 @@ Attitude Character::attitude_to( const Creature &other ) const
     return Attitude::A_NEUTRAL;
 }
 
-bool Character::sees( const tripoint_bub_ms &t, bool, int ) const
+bool Character::sees( const tripoint_bub_ms &t, bool, int, double ) const
 {
     if( t == bub_pos() ) {
         return true;

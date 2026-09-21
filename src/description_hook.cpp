@@ -5,8 +5,8 @@
 #include "catalua_sol.h"
 #include "creature.h"
 #include "game.h"
-#include "map.h"
-#include "mapdata.h"
+#include "map/map.h"
+#include "map/mapdata.h"
 
 #include <string>
 

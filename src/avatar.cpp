@@ -35,11 +35,11 @@
 #include "itype.h"
 #include "iuse.h"
 #include "kill_tracker.h"
-#include "legacy_pathfinding.h"
 #include "locations.h"
 #include "magic/magic_teleporter_list.h"
 #include "make_static.h"
-#include "map.h"
+#include "map/legacy_pathfinding.h"
+#include "map/map.h"
 #include "map_memory.h"
 #include "martialarts.h"
 #include "messages.h"
@@ -218,7 +218,6 @@ void avatar::control_npc( npc &np )
     g->reset_light_level();
     // setpos() keeps the loaded map window aligned with the new avatar.
     setpos( controlled_npc_pos );
-    std::unique_lock lock( cata::lua_lock );
     cata::run_hooks( "on_control_npc", [ & ]( auto & params ) {
         params["npc"] = &np;
     } );
@@ -1172,7 +1171,6 @@ bool avatar::is_dead_state() const
     }
 
     if( Character::is_dead_state() ) {
-        std::unique_lock lock( cata::lua_lock );
         cata::run_hooks( "on_character_death", [ &, this]( auto & params ) {
             params["char"] = this;
         } );

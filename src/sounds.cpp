@@ -15,10 +15,11 @@
 #include "item.h"
 #include "itype.h"
 #include "line.h"
-#include "map.h"
+#include "map/map.h"
+#include "map/mapbuffer.h"
+#include "map/mapdata.h"
+#include "map/submap.h"
 #include "map_iterator.h"
-#include "mapbuffer.h"
-#include "mapdata.h"
 #include "messages.h"
 #include "monfaction.h"
 #include "monster.h"
@@ -35,7 +36,6 @@
 #include "safemode_ui.h"
 #include "string_formatter.h"
 #include "string_id.h"
-#include "submap.h"
 #include "thread_pool.h"
 #include "translations.h"
 #include "type_id.h"
@@ -953,7 +953,7 @@ void map::batch_flood_fill_sounds()
             if( flooded_sound.origin.z() != z ) {
                 // We still floodfill these sounds out later, just when we get to the right z-level.
                 continue;
-            } else if( flooded_sound.volume < 7 ) {
+            } else if( flooded_sound.volume < 7 || !inbounds( flooded_sound.origin ) ) {
                 num_invalidated_sounds++;
                 continue;
             } else {
@@ -2687,7 +2687,7 @@ void sounds::process_sound_markers( Character *who )
         }
         loudest_vol = std::max( loudest_vol, tile_vol );
 
-        if( tile_vol >= MAXIMUM_VOLUME_ATMOSPHERE || tile_vol > dBspl_to_mdBspl( element.sound.volume ) ) {
+        if( tile_vol > MAXIMUM_VOLUME_ATMOSPHERE || tile_vol > dBspl_to_mdBspl( element.sound.volume ) ) {
             // Dont count impossibly loud sounds.
             debugmsg( "Player given impossibly loud sound! Sound with description [ %1s ] from %i:%i:%i with an origin volume of %i dB, tile volume of %i mdB, distance %i at %i:%i:%i is louder than possible.",
                       element.sound.description, element.sound.origin.x(), element.sound.origin.y(),

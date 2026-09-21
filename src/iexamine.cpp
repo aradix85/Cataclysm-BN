@@ -52,7 +52,6 @@
 #include "enums.h"
 #include "event.h"
 #include "event_bus.h"
-#include "field_type.h"
 #include "flag.h"
 #include "flat_set.h"
 #include "flood_fill.h"
@@ -73,14 +72,16 @@
 #include "iuse_actor.h"
 #include "line.h"
 #include "magic/magic_teleporter_list.h"
-#include "map.h"
+#include "map/field_type.h"
+#include "map/map.h"
+#include "map/map_selector.h"
+#include "map/mapbuffer.h"
+#include "map/mapbuffer_registry.h"
+#include "map/mapdata.h"
+#include "map/submap.h"
 #include "map/utils/map_functions.h"
 #include "map/utils/map_utils.h"
 #include "map_iterator.h"
-#include "map_selector.h"
-#include "mapbuffer.h"
-#include "mapbuffer_registry.h"
-#include "mapdata.h"
 #include "material.h"
 #include "messages.h"
 #include "mongroup.h"
@@ -107,7 +108,6 @@
 #include "string_formatter.h"
 #include "string_id.h"
 #include "string_input_popup.h"
-#include "submap.h"
 #include "timed_event.h"
 #include "translations.h"
 #include "trap.h"
@@ -305,7 +305,7 @@ void iexamine::nanofab( player &p, const tripoint_bub_ms &examp )
     tripoint_bub_ms spawn_point;
     map &here = get_map();
     for( const auto &valid_location : here.points_in_radius( examp, 1 ) ) {
-        if( here.ter( valid_location ) == ter_str_id( "t_nanofab_body" ) ) {
+        if( here.has_flag( "NANOFAB_BODY", valid_location ) ) {
             spawn_point = valid_location;
             table_exists = true;
             break;
@@ -431,7 +431,7 @@ void iexamine::nanoforge( player &p, const tripoint_bub_ms &examp )
     tripoint_bub_ms spawn_point;
     map &here = get_map();
     for( const auto &valid_location : here.points_in_radius( examp, 1 ) ) {
-        if( here.ter( valid_location ) == ter_str_id( "t_nanoforge_body" ) ) {
+        if( here.has_flag( "NANOFORGE_BODY", valid_location ) ) {
             spawn_point = valid_location;
             table_exists = true;
             break;
@@ -8420,7 +8420,7 @@ void iexamine::multicooker( player &p, const tripoint_bub_ms &pos )
 
         for( const auto &r : g->u.get_learned_recipes() ) {
             if( vars->get( "CATEGORYIDS", std::set<std::string>() ).contains( r->subcategory ) ||
-                vars->get( "RECIPEIDS", std::set<std::string>() ).contains( r->result().str() ) ) {
+                vars->get( "RECIPEIDS", std::set<std::string>() ).contains( r->ident().str() ) ) {
                 dishes.push_back( r );
                 const bool can_make = r->deduped_requirements().can_make_with_inventory(
                                           crafting_inv, r->get_component_filter() );

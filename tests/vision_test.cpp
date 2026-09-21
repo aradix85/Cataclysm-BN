@@ -1,15 +1,15 @@
+#include "../src/map/map.h"
 #include "../src/vehicle/vehicle_part.h"
 #include "../src/vehicle/vpart_position.h"
 #include "calendar.h"
 #include "catch/catch.hpp"
 #include "character.h"
 #include "coordinates.h"
-#include "field.h"
 #include "game.h"
 #include "game_constants.h"
 #include "item.h"
-#include "lightmap.h"
-#include "map.h"
+#include "map/field.h"
+#include "map/lightmap.h"
 #include "map_helpers.h"
 #include "player_helpers.h"
 #include "shadowcasting.h"
@@ -35,11 +35,11 @@ enum class vision_test_flags {
     crouching = 1 << 1,
 };
 
-static vision_test_flags operator&(vision_test_flags l, vision_test_flags r) {
+static auto operator&(vision_test_flags l, vision_test_flags r) -> vision_test_flags {
     return static_cast<vision_test_flags>(static_cast<unsigned>(l) & static_cast<unsigned>(r));
 }
 
-static bool operator!(vision_test_flags f) { return !static_cast<unsigned>(f); }
+static auto operator!(vision_test_flags f) -> bool { return !static_cast<unsigned>(f); }
 
 static void full_map_test(
     const std::vector<std::string>& setup, const std::vector<std::string>& expected_results,

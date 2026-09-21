@@ -20,13 +20,13 @@
 #include "init.h"
 #include "json.h"
 #include "line.h"
-#include "map.h"
+#include "map/map.h"
+#include "map/mapbuffer.h"
+#include "map/mapbuffer_registry.h"
 #include "map_iterator.h"
-#include "mapbuffer.h"
-#include "mapbuffer_registry.h"
-#include "mapgen.h"
-#include "mapgen_constructor.h"
-#include "mapgen_functions.h"
+#include "mapgen/mapgen.h"
+#include "mapgen/mapgen_constructor.h"
+#include "mapgen/mapgen_functions.h"
 #include "math_defines.h"
 #include "messages.h"
 #include "mongroup.h"
@@ -68,6 +68,7 @@
 #include <cstddef>
 #include <cstring>
 #include <exception>
+#include <map/submap.h>
 #include <memory>
 #include <numeric>
 #include <optional>
@@ -75,7 +76,6 @@
 #include <point.h>
 #include <ranges>
 #include <set>
-#include <submap.h>
 #include <tuple>
 #include <unordered_set>
 #include <vector>
@@ -3846,8 +3846,7 @@ void overmap::move_hordes()
         if( ( mg.abs_pos.xy() == mg.target.xy() ) || mg.interest <= 15 ) {
             auto used_hook_target = false;
 
-            std::unique_lock lock( cata::lua_lock );
-            if( auto *state = cata::get_active_lua_state() ) {
+            if( auto *state = DynamicDataLoader::get_instance().lua.get() ) {
                 auto &lua = state->lua;
                 auto game = lua.globals()["game"];
                 auto behaviours_obj = game["horde_behaviours"].get<sol::object>();

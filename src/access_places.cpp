@@ -1,6 +1,6 @@
 #include "access_places.h"
 
-#include "map.h"
+#include "map/map.h"
 #include "omdata.h"
 #include "overmapbuffer.h"
 #include "regional_settings.h"

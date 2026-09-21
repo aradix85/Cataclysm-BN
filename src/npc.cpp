@@ -6,7 +6,6 @@
 #include "bodypart.h"
 #include "cached_options.h"
 #include "calendar.h"
-#include "catalua.h"
 #include "catalua_hooks.h"
 #include "catalua_sol.h"
 #include "character.h"
@@ -35,14 +34,14 @@
 #include "iuse.h"
 #include "iuse_actor.h"
 #include "json.h"
-#include "legacy_pathfinding.h"
 #include "locations.h"
 #include "magic/magic.h"
-#include "map.h"
+#include "map/legacy_pathfinding.h"
+#include "map/map.h"
+#include "map/map_selector.h"
+#include "map/mapbuffer.h"
+#include "map/mapdata.h"
 #include "map_iterator.h"
-#include "map_selector.h"
-#include "mapbuffer.h"
-#include "mapdata.h"
 #include "math_defines.h"
 #include "messages.h"
 #include "mission.h"
@@ -1078,15 +1077,15 @@ void npc::finish_read( item *it )
 
         if( skill_level != originalSkillLevel ) {
             g->events().send<event_type::gains_skill_level>( getID(), skill, skill_level.level() );
+            // NPC continue reading until they can no longer learn from the book.
+            if( skill_level == reading->level ) {
+                revert_after_activity();
+                return;
+            }
             if( display_messages ) {
                 add_msg( m_good, _( "%s increases their %s level." ), disp_name(), skill_name );
-                // NPC continue reading until they can no longer learn from the book.
-                if( skill_level == reading->level ) {
-                    revert_after_activity();
-                    return;
-                }
-                continuous = true;
             }
+            continuous = true;
         } else {
             continuous = true;
             if( display_messages ) {
@@ -3102,7 +3101,6 @@ void npc::on_load()
         hallucination = true;
     }
 
-    std::unique_lock lock( cata::lua_lock );
     cata::run_hooks( "on_creature_loaded", [this]( sol::table & params ) {
         params["creature"] = this;
     } );

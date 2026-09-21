@@ -15,7 +15,6 @@
 #include "cached_options.h"
 #include "calendar.h"
 #include "cata_utility.h"
-#include "catalua.h"
 #include "catalua_hooks.h"
 #include "catalua_icallback_actor.h"
 #include "catalua_sol.h"
@@ -33,7 +32,6 @@
 #include "enums.h"
 #include "explosion.h"
 #include "faction.h"
-#include "field_type.h"
 #include "flag.h"
 #include "flat_set.h"
 #include "game.h"
@@ -52,11 +50,13 @@
 #include "line.h"
 #include "locations.h"
 #include "magic/magic.h"
-#include "map.h"
+#include "map/field_type.h"
+#include "map/map.h"
+#include "map/map_selector.h"
+#include "map/mapdata.h"
+#include "map/submap_load_manager.h"
 #include "map/utils/map_utils.h"
 #include "map_iterator.h"
-#include "map_selector.h"
-#include "mapdata.h"
 #include "material.h"
 #include "memory_fast.h"
 #include "messages.h"
@@ -83,7 +83,6 @@
 #include "string_formatter.h"
 #include "string_input_popup.h"
 #include "string_utils.h"
-#include "submap_load_manager.h"
 #include "text_snippets.h"
 #include "translations.h"
 #include "trap.h"
@@ -101,6 +100,7 @@
 #include "visitable.h"
 #include "vitamin.h"
 #include "weather/weather.h"
+#include "world.h"
 #include "world_type.h"
 
 #include <algorithm>
@@ -1251,15 +1251,12 @@ int place_monster_iuse::use( player &p, item &it, bool, const tripoint_bub_ms &p
         newmon.no_extra_death_drops = true;
         it.deactivate();
     }
-    {
-        std::unique_lock lock( cata::lua_lock );
-        cata::run_hooks( "on_creature_spawn", [&]( sol::table & params ) {
-            params["creature"] = &newmon;
-        } );
-        cata::run_hooks( "on_monster_spawn", [&]( sol::table & params ) {
-            params["monster"] = &newmon;
-        } );
-    }
+    cata::run_hooks( "on_creature_spawn", [&]( sol::table & params ) {
+        params["creature"] = &newmon;
+    } );
+    cata::run_hooks( "on_monster_spawn", [&]( sol::table & params ) {
+        params["monster"] = &newmon;
+    } );
     if( place_random ) {
         // place_critter_around returns the same pointer as its parameter (or null)
         // Allow position to be different from the player for tossed or launched items
@@ -3059,6 +3056,17 @@ void bandolier_actor::load( const JsonObject &obj )
     }
 
     draw_cost = obj.get_int( "draw_cost", draw_cost );
+}
+
+std::string bandolier_actor::check() const
+{
+    std::string res = "";
+    for( const auto &ammotype : ammo ) {
+        if( !ammotype.is_valid() ) {
+            res += string_format( "invalid ammotype %s\n", ammotype.str() );
+        }
+    }
+    return res;
 }
 
 void bandolier_actor::info( const item &, std::vector<iteminfo> &dump ) const
@@ -5829,7 +5837,7 @@ void multicooker_iuse::load( const JsonObject &obj )
     assign( obj, "charges_per_minute", charges_per_minute );
     assign( obj, "time_mult", time_mult );
     for( const std::string line : obj.get_array( "recipes" ) ) {
-        recipes.emplace( line );
+        recipes.emplace( recipe_id( line ) );
     }
     for( const std::string line : obj.get_array( "subcategories" ) ) {
         subcategories.emplace( line );
@@ -6024,7 +6032,7 @@ int multicooker_iuse::use( player &p, item &it, bool t, const tripoint_bub_ms &p
             int counter = 0;
 
             for( const auto &r : g->u.get_learned_recipes() ) {
-                if( subcategories.contains( r->subcategory ) || recipes.contains( r->result() ) ) {
+                if( subcategories.contains( r->subcategory ) || recipes.contains( r->ident() ) ) {
                     dishes.push_back( r );
                     const bool can_make = r->deduped_requirements().can_make_with_inventory(
                                               crafting_inv, r->get_component_filter() );
@@ -7192,6 +7200,10 @@ void iuse_dimension_travel::load( const JsonObject &obj )
 
 int iuse_dimension_travel::use( player &p, item &it, bool, const tripoint_bub_ms &pos ) const
 {
+    if( g->get_active_world()->info->world_save_format == save_format::V1 ) {
+        popup( "Dimensions are currently disfunctional in v1 saves. Please migrate this save to v2 or dont use the feature." );
+        return true;
+    }
     dimension_travel( p, it, pos );
     return need_charges;
 }
@@ -7324,6 +7336,10 @@ void iuse_pocket_dimension::load( const JsonObject &obj )
 
 int iuse_pocket_dimension::use( player &p, item &it, bool, const tripoint_bub_ms & ) const
 {
+    if( g->get_active_world()->info->world_save_format == save_format::V1 ) {
+        popup( "Dimensions are currently disfunctional in v1 saves. Please migrate this save to v2 or dont use the feature." );
+        return true;
+    }
     // If pocket is not initialized, initialize it on first use
     if( !it.pocket_dim.has_value() || !it.pocket_dim->pocket_info.has_value() ||
         !it.pocket_dim->pocket_info->is_initialized ) {

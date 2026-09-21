@@ -813,6 +813,9 @@ class Character : public Creature, public location_visitable<Character>
         bool has_base_trait( const trait_id &b ) const;
         /** Returns true if player has a trait with a flag */
         bool has_trait_flag( const trait_flag_str_id &b ) const;
+
+        bool has_trait_type( const std::string &mut_type ) const;
+
         /** Returns true if character has a trait which cancels the entered trait. */
         bool has_opposite_trait( const trait_id &flag ) const;
 
@@ -2295,7 +2298,8 @@ class Character : public Creature, public location_visitable<Character>
         bool avoid_trap( const tripoint_bub_ms &pos, const trap &tr ) const override;
 
         // see Creature::sees
-        bool sees( const tripoint_bub_ms &t, bool is_player = false, int range_mod = 0 ) const override;
+        bool sees( const tripoint_bub_ms &t, bool is_player = false, int range_limit = 0,
+                   double range_mod = 1 ) const override;
         // see Creature::sees
         bool sees( const Creature &critter ) const override;
         Attitude attitude_to( const Creature &other ) const override;

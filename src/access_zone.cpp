@@ -4,11 +4,11 @@
 #include "avatar.h"
 #include "coordinates.h"
 #include "game_constants.h"
-#include "map.h"
+#include "map/map.h"
+#include "map/mapdata.h"
 #include "map_memory.h"
 #include "overmap.h"
 #include "overmapbuffer.h"
-#include "mapdata.h"
 
 #include <algorithm>
 #include <cstdlib>

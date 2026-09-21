@@ -24,35 +24,33 @@
 constexpr int LUA_API_VERSION = 2;
 
 #include "action_time_scale.h"
-#include "catalua_sol.h"
-
 #include "avatar.h"
 #include "bionics.h"
 #include "catalua_console.h"
 #include "catalua_coord.h"
 #include "catalua_hooks.h"
-#include "catalua_impl.h"
 #include "catalua_icallback_actor.h"
+#include "catalua_impl.h"
 #include "catalua_readonly.h"
-#include "catalua_coord.h"
 #include "catalua_serde.h"
+#include "catalua_sol.h"
 #include "filesystem.h"
 #include "fstream_utils.h"
 #include "init.h"
 #include "item_factory.h"
 #include "json.h"
-#include "mapgen_async.h"
-#include "lua_sidebar_widgets.h"
 #include "lua_action_menu.h"
 #include "lua_actions.h"
-#include "map.h"
-#include "mapgen_constructor.h"
+#include "lua_sidebar_widgets.h"
+#include "map/map.h"
+#include "mapgen/mapgen_async.h"
+#include "mapgen/mapgen_constructor.h"
 #include "messages.h"
 #include "mod_manager.h"
 #include "mutation.h"
 #include "path_info.h"
-#include "point.h"
 #include "player_activity.h"
+#include "point.h"
 #include "worldfactory.h"
 
 namespace cata
@@ -143,8 +141,7 @@ void show_lua_console()
 
 void reload_lua_code()
 {
-    std::unique_lock lock( lua_lock );
-    cata::lua_state &state = *get_active_lua_state();
+    cata::lua_state &state = *DynamicDataLoader::get_instance().lua;
     const auto &packs = world_generator->active_world->info->active_mod_order;
     try {
         cata::lua_action_menu::clear_entries();
@@ -162,8 +159,7 @@ void reload_lua_code()
 
 void debug_write_lua_backtrace( std::ostream &out )
 {
-    std::unique_lock lock( lua_lock );
-    cata::lua_state *state = get_active_lua_state();
+    cata::lua_state *state = DynamicDataLoader::get_instance().lua.get();
     if( !state ) {
         return;
     }
@@ -200,7 +196,6 @@ auto get_lua_callback( lua_state &state, const std::string table_name,
 auto run_lua_callback( const std::string table_name, const std::string &callback_id,
                        const std::function<void( sol::table & )> &fill_params ) -> void
 {
-    std::unique_lock lock( lua_lock );
     lua_state *state = get_active_lua_state();
     if( state == nullptr ) {
         debugmsg( "Lua callback '%s' requested before Lua state was initialized", callback_id );
@@ -241,11 +236,11 @@ auto make_lua_activity_data_table( sol::state &lua, const player_activity &act )
 
 bool save_world_lua_state( const world *world, const std::string &path )
 {
+    lua_state &state = *DynamicDataLoader::get_instance().lua;
+
     const mod_management::t_mod_list &mods = world_generator->active_world->info->active_mod_order;
-    run_on_game_save_hooks();
-    std::unique_lock lock( lua_lock );
-    lua_state &state = *get_active_lua_state();
     sol::table t = get_mod_storage_table( state );
+    run_on_game_save_hooks( state );
     const auto ret = world->write_to_file( path, [&]( std::ostream & stream ) {
         JsonOut jsout( stream );
         jsout.start_object();
@@ -264,8 +259,7 @@ bool save_world_lua_state( const world *world, const std::string &path )
 
 bool load_world_lua_state( const world *world, const std::string &path )
 {
-    std::unique_lock lock( lua_lock );
-    lua_state &state = *get_active_lua_state();
+    lua_state &state = *DynamicDataLoader::get_instance().lua;
     const mod_management::t_mod_list &mods = world_generator->active_world->info->active_mod_order;
     sol::table t = get_mod_storage_table( state );
 
@@ -288,8 +282,7 @@ bool load_world_lua_state( const world *world, const std::string &path )
         }
     }, true );
 
-    lock.unlock();
-    run_on_game_load_hooks();
+    run_on_game_load_hooks( state );
     return ret;
 }
 
@@ -365,9 +358,6 @@ void init_global_state_tables( lua_state &state, const std::vector<mod_id> &modl
 
     // mapgen functions
     gt["mapgen_functions"] = lua.create_table();
-
-    // Itemgroup modification functions
-    gt["itemgroup_postprocessors"] = lua.create_table();
 
     // monster / npc functions
     gt["monster_ai_functions"] = lua.create_table();
@@ -725,9 +715,6 @@ static auto resolve_hook_state( std::string_view hook_name, const hook_opts &opt
 
 auto has_hooks( std::string_view hook_name, const hook_opts &opts ) -> bool
 {
-    // Upstream's lock, taken before the state is resolved rather than after:
-    // resolving reads the very state it protects.
-    std::unique_lock lock( lua_lock );
     lua_state *resolved = resolve_hook_state( hook_name, opts );
     if( !resolved ) {
         return false;
@@ -1204,10 +1191,8 @@ void resolve_extra_lua_callbacks()
     trap::resolve_lua_callbacks( lua_itrap_actors );
 }
 
-void run_on_every_x_hooks()
+void run_on_every_x_hooks( lua_state &state )
 {
-    std::unique_lock lock( lua_lock );
-    lua_state &state = *cata::get_active_lua_state();
     std::vector<cata::on_every_x_hooks> &master_table =
         state.lua["game"]["cata_internal"]["on_every_x_hooks"];
     for( auto &entry : master_table ) {
@@ -1262,8 +1247,6 @@ auto run_lua_activity_callback( const std::string &callback_id, player &who,
         params["user"] = who.as_character();
         params["activity"] = &act;
         params["name"] = act.name;
-        // Run lua callback gets a lock -> It's the only thing that calls this
-        // Thus this needs no lock
         if( auto *state = get_active_lua_state() ) {
             params["data"] = make_lua_activity_data_table( state->lua, act );
         }
@@ -1295,34 +1278,29 @@ void lua_state_deleter::operator()( lua_state *state ) const
     delete state;
 }
 
-void run_on_game_save_hooks()
+void run_on_game_save_hooks( lua_state &state )
 {
-    std::unique_lock lock( cata::lua_lock );
-    run_hooks( "on_game_save", nullptr );
+    run_hooks( "on_game_save", nullptr, { .state = &state } );
 }
 
-void run_on_game_load_hooks()
+void run_on_game_load_hooks( lua_state &state )
 {
-    std::unique_lock lock( cata::lua_lock );
-    run_hooks( "on_game_load", nullptr );
+    run_hooks( "on_game_load", nullptr, { .state = &state } );
 }
 
-void run_on_mapgen_postprocess_hooks( mapgen_constructor &m,
+void run_on_mapgen_postprocess_hooks( lua_state &state, mapgen_constructor &m,
                                       const tripoint_abs_omt &p, const time_point &when )
 {
-    std::unique_lock lock( cata::lua_lock );
     run_hooks( "on_mapgen_postprocess", [&]( sol::table & params ) {
         params["map"] = &m;
         params["omt"] = cata::detail::lua_coords::to_lua( p );
         params["when"] = when;
-    } );
+    }, { .state = &state } );
 }
 
-void run_on_mapgen_postprocess_hooks_batch( mapgen_constructor &constructor,
+void run_on_mapgen_postprocess_hooks_batch( lua_state &state, mapgen_constructor &constructor,
         std::span<const mapgen_hook_batch_item> items )
 {
-    std::unique_lock lock( lua_lock );
-    cata::lua_state &state = *get_active_lua_state();
     if( items.empty() ) {
         return;
     }

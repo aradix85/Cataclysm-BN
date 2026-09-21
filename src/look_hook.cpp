@@ -3,7 +3,7 @@
 #include "catalua_coord.h"
 #include "catalua_hooks.h"
 #include "catalua_sol.h"
-#include "map.h"
+#include "map/map.h"
 
 #include <string>
 

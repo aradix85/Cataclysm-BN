@@ -13,19 +13,19 @@
 #include "creature_tracker.h"
 #include "debug.h"
 #include "effect.h"
-#include "field.h"
-#include "field_type.h"
 #include "game.h"
 #include "game_constants.h"
 #include "init.h"
 #include "int_id.h"
-#include "legacy_pathfinding.h"
 #include "line.h"
 #include "make_static.h"
-#include "map.h"
+#include "map/field.h"
+#include "map/field_type.h"
+#include "map/legacy_pathfinding.h"
+#include "map/map.h"
+#include "map/mapdata.h"
 #include "map/utils/map_functions.h"
 #include "map_iterator.h"
-#include "mapdata.h"
 #include "mattack_common.h"
 #include "messages.h"
 #include "monfaction.h"
@@ -127,8 +127,7 @@ auto run_lua_monster_ai( monster &mon ) -> bool
         return false;
     }
 
-    std::unique_lock lock( cata::lua_lock );
-    auto *lua_state = cata::get_active_lua_state();
+    auto *lua_state = DynamicDataLoader::get_instance().lua.get();
     if( lua_state == nullptr ) {
         return false;
     }
@@ -2413,20 +2412,17 @@ static tripoint_bub_ms find_closest_stair( const tripoint_bub_ms &near_this,
 bool monster::move_to( const tripoint_bub_ms &p, bool force, bool step_on_critter,
                        const float stagger_adjustment )
 {
-    {
-        std::unique_lock lock( cata::lua_lock );
-        const auto hook_results = cata::run_hooks(
-                                      "on_monster_try_move",
-        [ &, this]( sol::table & params ) {
-            params["monster"] = this;
-            params["from"] = cata::detail::lua_coords::to_lua( bub_pos() );
-            params["to"] = cata::detail::lua_coords::to_lua( p );
-            params["force"] = force;
-        } );
-        const auto can_move = hook_results.get_or( "allowed", true );
-        if( !can_move ) {
-            return false;
-        }
+    const auto hook_results = cata::run_hooks(
+                                  "on_monster_try_move",
+    [ &, this]( sol::table & params ) {
+        params["monster"] = this;
+        params["from"] = cata::detail::lua_coords::to_lua( bub_pos() );
+        params["to"] = cata::detail::lua_coords::to_lua( p );
+        params["force"] = force;
+    } );
+    const auto can_move = hook_results.get_or( "allowed", true );
+    if( !can_move ) {
+        return false;
     }
 
     const bool on_ground = !digging() && !flies();
@@ -2494,12 +2490,14 @@ bool monster::move_to( const tripoint_bub_ms &p, bool force, bool step_on_critte
     }
 
     if( !force ) {
+        if( stagger_adjustment == 0.0f ) {
+            return false;
+        }
         // This adjustment is to make it so that monster movement speed relative to the player
         // is consistent even if the monster stumbles,
         // and the same regardless of the distance measurement mode.
         // Note: Keep this as float here or else it will cancel valid moves
-        const float cost = stagger_adjustment *
-                           static_cast<float>( climbs() &&
+        const float cost = static_cast<float>( climbs() &&
                                                g->m.has_flag( TFLAG_NO_FLOOR, p ) ? calc_climb_cost( bub_pos(),
                                                        destination ) : calc_movecost( bub_pos(),
                                                                destination ) );

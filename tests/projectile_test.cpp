@@ -1,3 +1,4 @@
+#include "../src/map/map.h"
 #include "../src/vehicle/vpart_position.h"
 #include "avatar.h"
 #include "ballistics.h"
@@ -8,7 +9,6 @@
 #include "game.h"
 #include "game_constants.h"
 #include "item.h"
-#include "map.h"
 #include "map_helpers.h"
 #include "monster.h"
 #include "npc.h"
@@ -24,8 +24,8 @@
 #include <set>
 #include <vector>
 
-static tripoint_bub_ms projectile_end_point(
-    const std::vector<tripoint_bub_ms>& range, const item& gun, int proj_range) {
+static auto projectile_end_point(
+    const std::vector<tripoint_bub_ms>& range, const item& gun, int proj_range) -> tripoint_bub_ms {
     projectile test_proj;
     test_proj.speed = gun.gun_speed();
     test_proj.range = proj_range;

@@ -14,8 +14,9 @@
 #include "itype.h"
 #include "iuse_actor.h"
 #include "make_static.h"
+#include "map/map_selector.h"
+#include "map/submap.h"
 #include "map_iterator.h"
-#include "map_selector.h"
 #include "messages.h"
 #include "monster.h"
 #include "npc.h"
@@ -24,7 +25,6 @@
 #include "ranged.h"
 #include "rng.h"
 #include "skill.h"
-#include "submap.h"
 #include "trap.h"
 #include "type_id.h"
 #include "uistate.h"
@@ -486,18 +486,6 @@ int rate_sleep_spot( const Character &who, const tripoint_bub_ms &p )
     } else {
         // Make it harder for insomniac to get around the trait
         sleepy -= current_stim;
-    }
-
-    if( one_in( 3 ) ) {
-        if( comfort_info.level >= comfort_level::very_comfortable ) {
-            who.add_msg_if_player( "You feel very comfortable." );
-        } else if( comfort_info.level >= comfort_level::comfortable ) {
-            who.add_msg_if_player( "You feel comfortable." );
-        } else if( comfort_info.level >= comfort_level::slightly_comfortable ) {
-            who.add_msg_if_player( "You feel slightly comfortable." );
-        } else {
-            who.add_msg_if_player( "You feel uncomfortable." );
-        }
     }
 
     return sleepy;

@@ -29,8 +29,6 @@
 #include "event.h"
 #include "event_bus.h"
 #include "explosion.h"
-#include "field.h"
-#include "field_type.h"
 #include "flag.h"
 #include "flat_set.h"
 #include "fluid_grid.h"
@@ -52,10 +50,12 @@
 #include "json.h"
 #include "line.h"
 #include "locations.h"
-#include "map.h"
+#include "map/field.h"
+#include "map/field_type.h"
+#include "map/map.h"
+#include "map/map_selector.h"
+#include "map/mapdata.h"
 #include "map_iterator.h"
-#include "map_selector.h"
-#include "mapdata.h"
 #include "martialarts.h"
 #include "memorial_logger.h"
 #include "memory_fast.h"
@@ -4235,7 +4235,7 @@ int iuse::portable_game( player *p, item *it, bool t, const tripoint_bub_ms & )
         }
 
         if( game_score != 0 ) {
-            p->add_morale( MORALE_GAME, game_score, 60, 2_hours, 30_minutes, true );
+            p->add_morale( MORALE_GAME, game_score, 20, 3_hours, 30_minutes, true );
         }
     }
     return 0;

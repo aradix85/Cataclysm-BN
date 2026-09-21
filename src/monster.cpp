@@ -19,7 +19,6 @@
 #include "event.h"
 #include "event_bus.h"
 #include "explosion.h"
-#include "field_type.h"
 #include "flag.h"
 #include "flat_set.h"
 #include "game.h"
@@ -34,10 +33,12 @@
 #include "line.h"
 #include "locations.h"
 #include "make_static.h"
-#include "map.h"
+#include "map/field_type.h"
+#include "map/map.h"
+#include "map/mapbuffer.h"
+#include "map/mapdata.h"
+#include "map/submap.h"
 #include "map_iterator.h"
-#include "mapbuffer.h"
-#include "mapdata.h"
 #include "mattack_actors.h"
 #include "mattack_common.h"
 #include "melee.h"
@@ -64,7 +65,6 @@
 #include "string_formatter.h"
 #include "string_id.h"
 #include "string_utils.h"
-#include "submap.h"
 #include "text_snippets.h"
 #include "translations.h"
 #include "trap.h"
@@ -245,8 +245,7 @@ auto get_lua_monster_attitude( const monster &mon,
         return std::nullopt;
     }
 
-    std::unique_lock lock( cata::lua_lock );
-    auto *lua_state = cata::get_active_lua_state();
+    auto *lua_state = DynamicDataLoader::get_instance().lua.get();
     if( lua_state == nullptr ) {
         return std::nullopt;
     }
@@ -1452,7 +1451,8 @@ bool monster::sees( const Creature &ch ) const
     }
     return Creature::sees( ch );
 }
-bool monster::sees( const tripoint_bub_ms &t, bool is_player, int range_mod ) const
+bool monster::sees( const tripoint_bub_ms &t, bool is_player, int range_limit,
+                    double range_mod ) const
 {
     if( type->clairvoyance > 0 ) {
         const int wanted_range = rl_dist( bub_pos(), t );
@@ -1462,7 +1462,7 @@ bool monster::sees( const tripoint_bub_ms &t, bool is_player, int range_mod ) co
             return true;
         }
     }
-    return Creature::sees( t, is_player, range_mod );
+    return Creature::sees( t, is_player, range_limit, range_mod );
 }
 
 bool monster::can_see() const
@@ -2537,14 +2537,11 @@ void monster::melee_attack( Creature &target, float accuracy )
 
     target.check_dead_state();
 
-    {
-        std::unique_lock lock( cata::lua_lock );
-        cata::run_hooks( "on_creature_melee_attacked", [ &, this]( auto & params ) {
-            params["char"] = this;
-            params["target"] = &target;
-            params["success"] = attack_success;
-        } );
-    }
+    cata::run_hooks( "on_creature_melee_attacked", [ &, this]( auto & params ) {
+        params["char"] = this;
+        params["target"] = &target;
+        params["success"] = attack_success;
+    } );
 
     if( is_hallucination() ) {
         if( one_in( 7 ) ) {
@@ -3644,7 +3641,6 @@ void monster::die( Creature *nkiller )
             }
         }
     }
-    std::unique_lock lock( cata::lua_lock );
     cata::run_hooks( "on_mon_death", [ &, this]( auto & params ) {
         params["mon"] = this;
         params["killer"] = get_killer();
@@ -3866,8 +3862,8 @@ void monster::process_one_effect( effect &it, bool is_new )
         }
     } else if( id == effect_bleed ) {
         int intense = it.get_intensity();
-        if( one_in( 36 / intense ) ) {
-            apply_damage( nullptr, bodypart_id( "torso" ), 1 );
+        if( one_in( 9 / intense ) ) {
+            apply_damage( nullptr, bodypart_id( "torso" ), 3 );
             bleed();
         }
     } else if( id == effect_run ) {
@@ -3879,7 +3875,6 @@ void monster::process_one_effect( effect &it, bool is_new )
     }
 
     if( is_new && it.has_flag( flag_EFFECT_LUA_ON_ADDED ) ) {
-        std::unique_lock lock( cata::lua_lock );
         cata::run_hooks( "on_mon_effect_added", [ &, this ]( auto & params ) {
             params["mon"] = this;
             params["effect"] = &it;
@@ -3887,7 +3882,6 @@ void monster::process_one_effect( effect &it, bool is_new )
     }
 
     if( it.has_flag( flag_EFFECT_LUA_ON_TICK ) ) {
-        std::unique_lock lock( cata::lua_lock );
         cata::run_hooks( "on_mon_effect", [ &, this ]( auto & params ) {
             params["mon"] = this;
             params["effect"] = &it;
@@ -4040,7 +4034,6 @@ void monster::make_pet( Character &actor )
         _lua_callbacks->call_on_tame( actor, *this );
     }
 
-    std::unique_lock lock( cata::lua_lock );
     cata::run_hooks( "on_monster_tame", [&](
     auto & params ) { params["avatar"] = &actor; params["monster"] = *this; }
                    );
@@ -4480,7 +4473,6 @@ void monster::on_load()
 
     last_updated = calendar::turn;
 
-    std::unique_lock lock( cata::lua_lock );
     cata::run_hooks( "on_creature_loaded", [this]( sol::table & params ) {
         params["creature"] = this;
     } );

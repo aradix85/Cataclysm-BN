@@ -7,7 +7,7 @@
 #include "enums.h"
 #include "look_hook.h"
 #include "lua_hook_helpers.h"
-#include "map.h"
+#include "map/map.h"
 #include "map_helpers.h"
 #include "player_helpers.h"
 

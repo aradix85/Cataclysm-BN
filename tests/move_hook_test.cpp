@@ -7,7 +7,7 @@
 #include "coordinates.h"
 #include "game.h"
 #include "lua_hook_helpers.h"
-#include "map.h"
+#include "map/map.h"
 #include "map_helpers.h"
 #include "state_helpers.h"
 #include "type_id.h"

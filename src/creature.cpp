@@ -4,7 +4,6 @@
 #include "anatomy.h"
 #include "avatar.h"
 #include "calendar.h"
-#include "catalua.h"
 #include "catalua_hooks.h"
 #include "catalua_sol.h"
 #include "character.h"
@@ -17,21 +16,22 @@
 #include "enums.h"
 #include "event.h"
 #include "event_bus.h"
-#include "field.h"
 #include "flag.h"
 #include "game.h"
 #include "game_constants.h"
 #include "int_id.h"
 #include "item.h"
 #include "json.h"
-#include "lightmap.h"
 #include "line.h"
 #include "locations.h"
-#include "map.h"
+#include "map/field.h"
+#include "map/lightmap.h"
+#include "map/map.h"
+#include "map/mapbuffer.h"
+#include "map/mapbuffer_registry.h"
+#include "map/mapdata.h"
+#include "map/submap_load_manager.h"
 #include "map_iterator.h"
-#include "mapbuffer.h"
-#include "mapbuffer_registry.h"
-#include "mapdata.h"
 #include "messages.h"
 #include "monster.h"
 #include "mtype.h"
@@ -46,7 +46,6 @@
 #include "rng.h"
 #include "string_id.h"
 #include "string_utils.h"
-#include "submap_load_manager.h"
 #include "translations.h"
 #include "utils/string_to_int.h"
 #include "value_ptr.h"
@@ -414,44 +413,46 @@ bool Creature::sees( const Creature &critter ) const
                  critter.get_size() <= creature_size::medium ) ) {
         return false;
     }
+    double range_mod = 1;
     if( ch != nullptr ) {
         if( ch->movement_mode_is( CMM_CROUCH ) || ch->movement_mode_is( CMM_PRONE ) ) {
             const int coverage = here.obstacle_coverage( bub_pos(), critter.bub_pos() );
             const int threshold = ch->movement_mode_is( CMM_PRONE ) ? 15 : 30;
-            if( coverage < threshold ) {
-                return sees( critter.bub_pos(), critter.is_avatar() ) && visible( ch );
+            if( coverage > threshold ) {
+                float size_modifier = 1.0;
+                switch( ch->get_size() ) {
+                    case creature_size::tiny:
+                        size_modifier = 2.0;
+                        break;
+                    case creature_size::small:
+                        size_modifier = 1.4;
+                        break;
+                    case creature_size::medium:
+                        break;
+                    case creature_size::large:
+                        size_modifier = 0.6;
+                        break;
+                    case creature_size::huge:
+                        size_modifier = 0.15;
+                        break;
+                    default:
+                        break;
+                }
+                range_mod = ( 0.5 * coverage * size_modifier ) / 30.0;
             }
-            float size_modifier = 1.0;
-            switch( ch->get_size() ) {
-                case creature_size::tiny:
-                    size_modifier = 2.0;
-                    break;
-                case creature_size::small:
-                    size_modifier = 1.4;
-                    break;
-                case creature_size::medium:
-                    break;
-                case creature_size::large:
-                    size_modifier = 0.6;
-                    break;
-                case creature_size::huge:
-                    size_modifier = 0.15;
-                    break;
-                default:
-                    break;
-            }
-            const int vision_modifier = 30 - 0.5 * coverage * size_modifier;
-            if( vision_modifier > 1 ) {
-                return sees( critter.bub_pos(), critter.is_avatar(), vision_modifier ) && visible( ch );
-            }
-            return false;
         }
+        range_mod *= ( double( ch->visibility() ) / 100.0 );
     }
-    return sees( critter.bub_pos(), critter.is_avatar() ) && visible( ch );
+    return sees( critter.bub_pos(), critter.is_avatar(), 0, range_mod ) && visible( ch );
 }
 
-bool Creature::sees( const tripoint_bub_ms &t, bool /*is_avatar*/, int range_mod ) const
+bool Creature::sees( const tripoint_bub_ms &t, bool /*is_avatar*/, int range_limit,
+                     double range_mod ) const
 {
+    if( range_mod <= 0 ) {
+        return false;
+    }
+
     map &here = get_map();
     // A creature in a different dimension from the current render map cannot
     // perform a valid sight check through that map's terrain data.
@@ -476,24 +477,24 @@ bool Creature::sees( const tripoint_bub_ms &t, bool /*is_avatar*/, int range_mod
         tl_range.range_night = sight_range( 0 );
         tl_range.range_max  = std::max( tl_range.range_day, tl_range.range_night );
     }
-    const auto range_max = tl_range.range_max;
+    const int range_max = tl_range.range_max * range_mod;
     const auto wanted_range = rl_dist( bub_pos(), t );
     if( wanted_range > range_max ) {
         return false;
     }
     const auto ambient = here.ambient_light_at( t );
-    const auto range_cur = sight_range( ambient );
-    const auto range_min = std::min( range_cur, range_max );
+    const int range_cur = sight_range( ambient ) * range_mod;
+    const int range_min = std::min( range_cur, range_max );
     const auto natural_light = g->natural_light_level( t.z() );
     const auto is_lit = ambient > natural_light;
     if( wanted_range <= range_min ||
         ( wanted_range <= range_max && is_lit ) ) {
-        auto range = is_lit ? g_max_view_distance : range_min;
+        int range = is_lit ? g_max_view_distance * range_mod : range_min;
         if( has_effect( effect_no_sight ) ) {
             range = 1;
         }
-        if( range_mod > 0 ) {
-            range = std::min( range, range_mod );
+        if( range_limit > 0 ) {
+            range = std::min( range, range_limit );
         }
         return here.sees( bub_pos(), t, range );
     } else {
@@ -1244,7 +1245,6 @@ void Creature::deal_projectile_attack( Creature *source, item *source_weapon,
     attack.hit_critter = this;
     attack.missed_by = goodhit;
     if( sourceplayer || sourcenpc ) {
-        std::unique_lock lock( cata::lua_lock );
         cata::run_hooks( "on_creature_attacked_by_character", [ &, this]( auto & params ) {
             params["char"] = source;
             params["target"] = this;
@@ -1354,7 +1354,11 @@ void Creature::deal_damage_handle_type( const damage_unit &du, bodypart_id bp, i
             // Cause bleed if high damage goes through armor and enemy is made of flesh
             if( adjusted_damage > 15 ) {
                 if( !is_immune_effect( effect_bleed ) ) {
-                    add_effect( effect_bleed, 1_minutes * rng( 1, adjusted_damage ), bp.id() );
+                    if( is_monster() ) {
+                        add_effect( effect_bleed, 4_seconds * rng( 1, adjusted_damage ), bp.id() );
+                    } else {
+                        add_effect( effect_bleed, 1_minutes * rng( 1, adjusted_damage ), bp.id() );
+                    }
                 }
             }
             break;
@@ -1364,7 +1368,11 @@ void Creature::deal_damage_handle_type( const damage_unit &du, bodypart_id bp, i
             // Cause bleed if high damage goes through armor and enemy is made of flesh
             if( adjusted_damage > 15 ) {
                 if( !is_immune_effect( effect_bleed ) ) {
-                    add_effect( effect_bleed, 1_minutes * rng( 1, adjusted_damage ), bp.id() );
+                    if( is_monster() ) {
+                        add_effect( effect_bleed, 4_seconds * rng( 1, adjusted_damage ), bp.id() );
+                    } else {
+                        add_effect( effect_bleed, 1_minutes * rng( 1, adjusted_damage ), bp.id() );
+                    }
                 }
             }
             break;
@@ -1386,7 +1394,6 @@ void Creature::deal_damage_handle_type( const damage_unit &du, bodypart_id bp, i
 
 void Creature::on_dodge( Creature *source, int difficulty )
 {
-    std::unique_lock lock( cata::lua_lock );
     cata::run_hooks( "on_creature_dodged", [ &, this]( auto & params ) {
         params["char"] = this;
         params["source"] = source;
@@ -1599,13 +1606,11 @@ bool Creature::remove_effect( const efftype_id &eff_id, const bodypart_str_id &b
 
     if( type.has_flag( flag_EFFECT_LUA_ON_REMOVED ) ) {
         if( ch != nullptr ) {
-            std::unique_lock lock( cata::lua_lock );
             cata::run_hooks( "on_character_effect_removed", [ & ]( auto & params ) {
                 params["character"] = ch;
                 params["effect"] = get_effect( eff_id );
             } );
         } else {
-            std::unique_lock lock( cata::lua_lock );
             cata::run_hooks( "on_mon_effect_removed", [ &, this ]( auto & params ) {
                 params["mon"] = this;
                 params["effect"] = get_effect( eff_id );

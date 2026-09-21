@@ -2,7 +2,7 @@
 #include "avatar.h"
 #include "catch/catch.hpp"
 #include "coordinates.h"
-#include "map.h"
+#include "map/map.h"
 #include "map_helpers.h"
 #include "player_helpers.h"
 #include "type_id.h"

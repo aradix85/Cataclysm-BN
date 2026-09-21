@@ -8,10 +8,10 @@
 #include "catalua_luna_doc.h"
 #include "character.h"
 #include "creature.h"
-#include "lightmap.h"
-#include "map.h"
+#include "map/lightmap.h"
+#include "map/map.h"
+#include "map/mapdata.h"
 #include "map_memory.h"
-#include "mapdata.h"
 #include "sounds.h"
 #include "units_probability.h"
 
