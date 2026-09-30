@@ -96,6 +96,14 @@ void reg_perception( sol::state &lua )
         return sounds::get_footstep_markers();
     } );
 
+    DOC( "Whether the character sees this creature, as the game decides it for the look-around "
+         "panel. False for a creature on a square in plain sight that is hidden from her: "
+         "camouflaged beyond her spotting range, in cover, digging, under water." );
+    luna::set_fx( lib, "sees_creature",
+    []( const Character & who, const Creature & critter ) -> bool {
+        return who.sees( critter );
+    } );
+
     DOC( "Whether the character detects this creature by infrared -- body heat through "
          "darkness, and through walls for some sensors. True while ordinary sight fails." );
     luna::set_fx( lib, "sees_with_infrared",

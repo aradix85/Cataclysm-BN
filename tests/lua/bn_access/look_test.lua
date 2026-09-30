@@ -21,6 +21,7 @@ local function at(opts)
     name = opts.name or "grass",
     area = opts.area or "forest",
     creature = opts.creature or "",
+    creature_seen = opts.creature_seen == true,
     sensed = opts.sensed or {},
     sound = opts.sound or "",
     items = opts.items or 0,
@@ -62,9 +63,15 @@ check.equal(
 )
 
 check.equal(
-  say(at({ creature = "zombie", name = "grass", dx = 2, dy = 2 }), at({})),
+  say(at({ creature = "zombie", creature_seen = true, name = "grass", dx = 2, dy = 2 }), at({})),
   "zombie on grass, 2 southeast.",
   "A creature comes before the ground it stands on, being the only thing on a square that can act"
+)
+
+check.equal(
+  say(at({ creature = "camouflaged zombie soldier", name = "grass", dx = 12 }), at({})),
+  "grass, 12 east.",
+  "A creature on a square she can see but hidden from her -- camouflaged, in cover, digging -- is not named: the game's own panel leaves it out, and naming it would report what she cannot know"
 )
 
 check.equal(

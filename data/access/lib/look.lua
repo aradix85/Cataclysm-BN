@@ -50,7 +50,10 @@ look.state = function(params)
     -- The creature standing there, and how it is sensed when it cannot be seen:
     -- infrared and the special senses reach through darkness and through walls,
     -- and a layer that left them out would make a working mechanic non-existent.
-    creature = text.clean(params.creature),
+    -- A creature is named only when she sees it, which is the game's own test for
+    -- its panel: a square can be in plain sight while what stands on it is not --
+    -- camouflaged beyond her spotting range, in cover, digging, under water.
+    creature = params.creature_seen == true and text.clean(params.creature) or "",
     sensed = params.sensed or {},
     sound = text.clean(params.sound),
     items = params.items or 0,

@@ -507,6 +507,7 @@ game.add_hook("on_look_around", {
       name = square_name(cursor),
       area = perception.area_name_at(cursor),
       creature = critter and critter:get_name() or "",
+      creature_seen = critter ~= nil and perception.sees_creature(you, critter),
       sensed = sensed,
       sound = perception.sound_at(cursor),
       items = #here:get_items_at(cursor),

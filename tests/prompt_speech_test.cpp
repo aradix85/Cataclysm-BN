@@ -167,6 +167,11 @@ TEST_CASE("bn_access_perception_bindings", "[lua]") {
     // route to it: the overmap terrain's id is bound and the terrain is not.
     CHECK_FALSE(test_data["area_name"].get<std::string>().empty());
 
+    // Whether she sees a creature is the game's own test for naming it on the look
+    // panel. A creature always sees itself, so the answer for the avatar is known
+    // on any map, which is what makes the bridge assertable here.
+    CHECK(test_data["sees_creature_self"].get<std::string>() == "true");
+
     // The special senses reach a creature the eyes cannot. Nothing is asserted
     // about the answer for the avatar itself -- only that both questions can be
     // asked, and that both descriptions come back as a list.

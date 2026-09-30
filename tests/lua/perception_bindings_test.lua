@@ -25,6 +25,7 @@ test_data.area_name = perception.area_name_at(at)
 
 -- The special senses take a character and a creature together, which is why
 -- they are free functions rather than methods on either.
+test_data.sees_creature_self = tostring(perception.sees_creature(you, you))
 test_data.infrared_self = tostring(perception.sees_with_infrared(you, you))
 test_data.specials_self = tostring(perception.sees_with_specials(you, you))
 test_data.describe_infrared = #perception.describe_infrared(you)
