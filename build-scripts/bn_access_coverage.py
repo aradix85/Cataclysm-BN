@@ -87,7 +87,14 @@ def scan():
     for path in sources():
         rel = path.relative_to(REPO).as_posix()
         current = None
-        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        text = path.read_text(encoding="utf-8", errors="replace")
+        # Over the whole file rather than per line: a call wrapped by the
+        # formatter puts the hook's name on the line after `run_hooks(`, and a
+        # per-line match reads that firing point as absent.
+        for hook in HOOK.finditer(text):
+            hooks[hook.group(1)] += 1
+            hook_files[hook.group(1)].add(rel)
+        for line in text.splitlines():
             found = (
                 CTX.search(line)
                 or CTX_MEMBER.search(line)
@@ -108,10 +115,6 @@ def scan():
                 uilist_total += uses
                 uilist_files[rel] += uses
             uilist_decls += len(UILIST_DECL.findall(line))
-            hook = HOOK.search(line)
-            if hook:
-                hooks[hook.group(1)] += 1
-                hook_files[hook.group(1)].add(rel)
             defined = DEFN.match(line)
             if defined and rel.endswith(".cpp"):
                 cls, name = defined.group(1), defined.group(2)
