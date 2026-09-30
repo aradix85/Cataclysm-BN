@@ -4,9 +4,9 @@
 #include "avatar.h"
 #include "catalua_hooks.h"
 #include "catalua_sol.h"
-#include "omdata.h"
-#include "overmap_ui.h"
-#include "overmapbuffer.h"
+#include "overmap/omdata.h"
+#include "overmap/overmap_ui.h"
+#include "overmap/overmapbuffer.h"
 #include "regional_settings.h"
 
 #include <string>

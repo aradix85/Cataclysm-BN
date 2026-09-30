@@ -72,13 +72,13 @@
 #include "mutation_data.h"
 #include "npc.h"
 #include "npc_class.h"
-#include "omdata.h"
 #include "overlay_ordering.h"
-#include "overmap.h"
-#include "overmap_connection.h"
-#include "overmap_location.h"
-#include "overmap_special.h"
-#include "overmapbuffer.h"
+#include "overmap/omdata.h"
+#include "overmap/overmap.h"
+#include "overmap/overmap_connection.h"
+#include "overmap/overmap_location.h"
+#include "overmap/overmap_special.h"
+#include "overmap/overmapbuffer.h"
 #include "panels.h"
 #include "profession.h"
 #include "recipe_dictionary.h"
@@ -266,6 +266,9 @@ void DynamicDataLoader::initialize()
     // Static Function Access
     add( "WORLD_OPTION", &load_world_option );
     add( "EXTERNAL_OPTION", &load_external_option );
+    add( "OPTION", &load_ignored_type );
+    add( "OPTION_GROUP", &load_ignored_type );
+    add( "OPTION_SPACE", &load_ignored_type );
     add( "json_flag", &json_flag::load_all );
     add( "mutation_flag", &json_trait_flag::load_all );
     add( "fault", &fault::load_fault );
@@ -484,6 +487,7 @@ void DynamicDataLoader::initialize()
     add( "score", &score::load_score );
     add( "achievement", &achievement::load_achievement );
     add( "named_color", &RGBColor::load_named_color );
+    add( "vehicle_blacklist", &vehicle_prototype::load_vehicle_blacklist );
 #if defined(TILES)
     add( "mod_tileset", &load_mod_tileset );
 #else
@@ -733,6 +737,7 @@ void DynamicDataLoader::finalize_loaded_data( loading_ui &ui )
                 }
             },
             { _( "Vehicle parts" ), &vpart_info::finalize_all },
+            { _( "Vehicle Groupss" ), &VehicleGroup::finalize },
             { _( "Traps" ), &trap::finalize },
             { _( "Terrain" ), &set_ter_ids },
             { _( "Furniture" ), &finalize_furn },

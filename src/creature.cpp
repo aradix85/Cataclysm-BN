@@ -37,7 +37,7 @@
 #include "mtype.h"
 #include "npc.h"
 #include "output.h"
-#include "overmapbuffer_registry.h"
+#include "overmap/overmapbuffer_registry.h"
 #include "player.h"
 #include "point.h"
 #include "profile.h"
@@ -272,6 +272,7 @@ void Creature::bleed() const
 
 void Creature::reset_bonuses()
 {
+    ZoneScopedN( "creature_reset_bonuses" );
     num_blocks = 1;
     num_dodges = 1;
     num_blocks_bonus = 0;
@@ -293,6 +294,7 @@ void Creature::reset_bonuses()
 
 void Creature::process_turn()
 {
+    ZoneScopedN( "creature_process_turn" );
     if( is_dead_state() ) {
         return;
     }
@@ -405,6 +407,7 @@ bool Creature::sees( const Creature &critter ) const
     } else if( ( wanted_range > 1 && critter.digging() ) ||
                ( critter.has_flag( MF_NIGHT_INVISIBILITY ) &&
                  here.light_at( critter.bub_pos() ) <= lit_level::LOW ) ||
+               ( critter.has_flag( MF_CAMOUFLAGE ) && wanted_range > spotting_range() ) ||
                ( critter.is_underwater() && !is_underwater() && here.is_divable( critter.bub_pos() ) ) ||
                ( here.has_flag_ter_or_furn( TFLAG_HIDE_PLACE, critter.bub_pos() ) &&
                  !( std::abs( bub_pos().x() - critter.bub_pos().x() ) <= 1 &&
@@ -1772,6 +1775,7 @@ struct removed_effect {
 
 void Creature::process_effects()
 {
+    ZoneScopedN( "creature_process_effects" );
     process_effects_internal();
 
     // id's and body_part's of all effects to be removed. If we ever get player or
@@ -1783,6 +1787,7 @@ void Creature::process_effects()
 
     // Decay/removal of effects
     for( auto &elem : *effects ) {
+        ZoneScopedN( "creature_decay_effects" );
         for( auto &_it : elem.second ) {
             if( _it.second.is_removed() ) {
                 to_remove.emplace_back( elem.first, _it.first, false );
@@ -1810,6 +1815,7 @@ void Creature::process_effects()
 
     // Run the on-remove effects
     for( const removed_effect &r : to_remove ) {
+        ZoneScopedN( "creature_remove_effects" );
         const auto &add_after = r.type->get_effects_on_remove();
         if( !add_after.empty() ) {
             bool found = false;
@@ -1837,6 +1843,7 @@ void Creature::process_effects()
     }
     // Actually remove effects. This should be the last thing done in process_effects().
     for( const removed_effect &r : to_remove ) {
+        ZoneScopedN( "creature_remove_effects_pt2" );
         if( !r.bp ) {
             effects->erase( r.type );
         } else {
@@ -1849,6 +1856,7 @@ void Creature::process_effects()
     }
 
     for( const effect &eff : to_add ) {
+        ZoneScopedN( "creature_add_effects" );
         add_effect( eff );
     }
 }
@@ -2070,6 +2078,10 @@ float Creature::get_dodge() const
 float Creature::get_hit() const
 {
     return get_hit_base() + get_hit_bonus();
+}
+int Creature::spotting_range() const
+{
+    return 0;
 }
 
 anatomy_id Creature::get_anatomy() const

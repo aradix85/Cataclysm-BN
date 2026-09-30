@@ -7,8 +7,8 @@
 #include "map/map.h"
 #include "map/mapdata.h"
 #include "map_memory.h"
-#include "overmap.h"
-#include "overmapbuffer.h"
+#include "overmap/overmap.h"
+#include "overmap/overmapbuffer.h"
 
 #include <algorithm>
 #include <cstdlib>

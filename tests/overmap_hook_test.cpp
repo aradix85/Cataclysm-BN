@@ -9,7 +9,7 @@
 
 // An overmap refuses to exist without a world, so these drive the firing
 // function with the tile the screen hands it. What that costs is the single call
-// line in src/overmap_ui.cpp; what it buys is that everything the screen knows
+// line in src/overmap/overmap_ui.cpp; what it buys is that everything the screen knows
 // about a place and never says out loud is asserted here rather than only at a
 // keyboard.
 

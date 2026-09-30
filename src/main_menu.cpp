@@ -25,7 +25,7 @@
 #include "newcharacter.h"
 #include "options.h"
 #include "output.h"
-#include "overmapbuffer.h"
+#include "overmap/overmapbuffer.h"
 #include "path_info.h"
 #include "pldata.h"
 #include "popup.h"
